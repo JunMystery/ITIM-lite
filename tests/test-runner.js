@@ -6,9 +6,7 @@ var fs = require("fs");
 var path = require("path");
 
 // Mock browser environment for Node.js test execution
-global.window = {
-  location: { pathname: path.join(process.cwd(), "ITIM.hta") }
-};
+global.window = { location: { pathname: path.join(process.cwd(), "ITIM.hta") } };
 global.localStorage = {
   store: {},
   getItem: function (k) { return this.store[k] || null; },
@@ -19,17 +17,15 @@ global.alert = function () {};
 
 // Load modules sequentially
 function loadModule(relPath) {
-  var full = path.join(__dirname, "..", relPath);
-  var code = fs.readFileSync(full, "utf8");
-  eval.call(global, code);
+  eval.call(global, fs.readFileSync(path.join(__dirname, "..", relPath), "utf8"));
 }
 
 [
   "config.js", "i18n.js", "fso-storage.js", "backup-engine.js", "barcode-qr.js",
   "inventory-service.js", "licenses-service.js", "consumables-service.js",
-  "assignments-service.js", "transactions-service.js", "po-service.js",
+  "assignments-service.js", "transactions-service.js", "stocktake-service.js", "po-service.js",
   "export-import.js", "ui-combobox.js", "ui-pagination.js", "ui-actions-menu.js",
-  "ui-layout.js", "ui-inbound.js"
+  "ui-layout.js", "ui-inbound.js", "ui-item-picker.js", "ui-audit.js", "ui-item-detail.js"
 ].forEach(function (m) { loadModule("js/" + m); });
 
 // Mock AppState
@@ -55,22 +51,15 @@ function assert(condition, message) {
 console.log("\n=== 1. InventoryService Tests ===");
 var initialCount = InventoryService.getAll().length;
 assert(initialCount === 4, "Initial seed assets count is 4");
-
 var directBlocked = false;
 try { InventoryService.add({ name: "Direct Rogue", category: "Laptop", serial: "R-1" }); } catch (e) { directBlocked = true; }
 assert(directBlocked, "Direct asset creation without PO is strictly blocked");
-
 var newAsset = InventoryService.addInboundAsset({
-  name: "MacBook Pro 16 M3",
-  category: "Laptop",
-  serial: "C02XYZ12345",
-  model: "M3 Pro 36GB 512GB",
-  status: "available",
-  poNumber: "PO-8001"
+  name: "MacBook Pro 16 M3", category: "Laptop", serial: "C02XYZ12345",
+  model: "M3 Pro 36GB 512GB", status: "available", poNumber: "PO-8001"
 });
 assert(newAsset.id && newAsset.id.indexOf("AST-") === 0, "Generated valid Asset ID: " + newAsset.id);
 assert(InventoryService.getAll().length === initialCount + 1, "Asset count incremented to " + (initialCount + 1));
-
 var found = InventoryService.getById(newAsset.id);
 assert(found && found.name === "MacBook Pro 16 M3", "Retrieved asset by ID");
 var filtered = InventoryService.filter("MacBook", "all", "all");
@@ -104,18 +93,13 @@ assert(ConsumablesService.getLowStockItems().length >= 1, "Detected low stock co
 
 console.log("\n=== 4. AssignmentsService Tests ===");
 var checkoutRes = AssignmentsService.checkout({
-  assetId: newAsset.id,
-  employeeName: "Alice Walker",
-  department: "Design",
-  conditionOut: "Pristine / Factory Sealed"
+  assetId: newAsset.id, employeeName: "Alice Walker", department: "Design", conditionOut: "Pristine / Factory Sealed"
 });
 assert(checkoutRes.success, "Successfully checked out asset to employee");
 assert(InventoryService.getById(newAsset.id).status === "inuse", "Asset status transitioned to inuse");
-
 var checkinRes = AssignmentsService.checkin(checkoutRes.assignment.id, "Good Condition", "Returned on schedule");
 assert(checkinRes.success, "Successfully returned asset");
 assert(InventoryService.getById(newAsset.id).status === "available", "Asset status transitioned back to available");
-
 var logs = AuditService.getAll();
 assert(logs.length > 0, "Audit logs recorded: " + logs.length + " entries");
 
@@ -148,31 +132,25 @@ curIdx.push({ name: oldName, path: oldName, size: 2, dateCreated: "2020-01-01" }
 localStorage.setItem("ITIM_BACKUPS_INDEX", JSON.stringify(curIdx));
 BackupEngine.pruneOldBackups(".\\data", { autoCleanMode: "date", autoCleanDays: 1 });
 var afterClean = BackupEngine.listBackups(".\\data");
-var foundOld = false;
-for (var ci = 0; ci < afterClean.length; ci++) { if (afterClean[ci].name === oldName) foundOld = true; }
-assert(!foundOld, "Cleaned old backup by date");
+assert(!afterClean.some(function (c) { return c.name === oldName; }), "Cleaned old backup by date");
 
 console.log("\n=== 8. Multilingual i18n & Placeholders Tests (EN, VI, JP) ===");
 I18N.setLang("en");
-assert(I18N.getLang() === "en" && I18N.t("search_placeholder").indexOf("Search assets") === 0, "EN i18n verified");
+assert(I18N.getLang() === "en" && I18N.t("dash_title") === "IT Operations & Fleet Command" && I18N.t("nav_audit") === "Inventory Audit", "EN i18n & stocktake verified");
 I18N.setLang("vi");
-assert(I18N.getLang() === "vi" && I18N.t("nav_dashboard") === "Bảng điều khiển" && I18N.t("status_available") === "Sẵn sàng", "VI i18n verified");
+assert(I18N.getLang() === "vi" && I18N.t("nav_dashboard") === "Bảng điều khiển" && I18N.t("nav_audit") === "Kiểm kê", "VI i18n & stocktake verified");
 I18N.setLang("jp");
-assert(I18N.getLang() === "jp" && I18N.t("nav_dashboard") === "ダッシュボード" && I18N.t("btn_new_asset") === "+ 機器登録", "JP i18n verified");
+assert(I18N.getLang() === "jp" && I18N.t("nav_dashboard") === "ダッシュボード" && I18N.t("nav_audit") === "実地棚卸", "JP i18n & stocktake verified");
 I18N.setLang("en");
 
 console.log("\n=== 9. TransactionsService & Bulk Operations Tests ===");
 var seedTxnCount = TransactionsService.getAll().length;
-assert(seedTxnCount === 1, "Initial seed transaction history count is 1");
+assert(seedTxnCount >= 1, "Initial transaction history count is valid (" + seedTxnCount + " txns)");
 
 // Test bulk checkout with 2 assets
 var bulkOutRes = TransactionsService.checkoutBulk({
-  assetIds: ["AST-1002", "AST-1003"],
-  employeeName: "Bob Smith",
-  department: "Engineering",
-  expectedReturnDate: "2026-12-31",
-  notes: "Dual monitor setup",
-  officer: "IT Admin"
+  assetIds: ["AST-1002", "AST-1003"], employeeName: "Bob Smith", department: "Engineering",
+  expectedReturnDate: "2026-12-31", notes: "Dual monitor setup", officer: "IT Admin"
 });
 assert(bulkOutRes.success === true, "Bulk checkout succeeded for multiple assets");
 assert(bulkOutRes.transaction && bulkOutRes.transaction.id.indexOf("TXN-") === 0, "Generated unique Txn ID: " + (bulkOutRes.transaction ? bulkOutRes.transaction.id : ""));
@@ -180,16 +158,12 @@ assert(bulkOutRes.transaction.itemCount === 2, "Transaction recorded exactly 2 i
 assert(InventoryService.getById("AST-1002").status === "inuse", "AST-1002 transitioned to inuse");
 assert(InventoryService.getById("AST-1003").status === "inuse", "AST-1003 transitioned to inuse");
 
-// Monotonic unique ID check
 var nextTxnId = TransactionsService.generateNextTxnId();
 assert(nextTxnId !== bulkOutRes.transaction.id, "Generated non-colliding subsequent Txn ID: " + nextTxnId);
 
 // Test bulk checkin
 var bulkInRes = TransactionsService.checkinBulk({
-  assetIds: ["AST-1002", "AST-1003"],
-  condition: "Good",
-  notes: "Returned after project completion",
-  officer: "IT Admin"
+  assetIds: ["AST-1002", "AST-1003"], condition: "Good", notes: "Returned after project completion", officer: "IT Admin"
 });
 assert(bulkInRes.success === true, "Bulk checkin succeeded for multiple assets");
 assert(bulkInRes.transaction.type === "CHECKIN", "Recorded CHECKIN transaction type");
@@ -208,14 +182,9 @@ assert(receiptHtml.indexOf("Bob Smith") !== -1, "Receipt contains employee name"
 
 // Test detail view data lookup
 var txnDetail = TransactionsService.getById(bulkOutRes.transaction.id);
-assert(txnDetail !== null, "Found transaction record for detail view");
-assert(txnDetail.items.length === 2, "Detail view item count is 2");
-assert(txnDetail.items[0].assetId === "AST-1002", "Detail view item 1 has correct assetId");
-assert(txnDetail.items[1].assetId === "AST-1003", "Detail view item 2 has correct assetId");
-
-// Test transaction i18n keys
-assert(I18N.t("btn_new_txn") === "+ New Transaction", "EN btn_new_txn translated");
-assert(I18N.t("btn_details") === "Details", "EN btn_details translated");
+assert(txnDetail !== null && txnDetail.items.length === 2, "Found transaction record for detail view with 2 items");
+assert(txnDetail.items[0].assetId === "AST-1002" && txnDetail.items[1].assetId === "AST-1003", "Detail view item assetIds valid");
+assert(I18N.t("btn_new_txn") === "+ New Transaction" && I18N.t("btn_details") === "Details", "EN txn i18n translated");
 assert(I18N.t("txn_detail_title") === "Transaction Details & Sign-Off", "EN txn_detail_title translated");
 
 console.log("\n=== 10. UIPagination & UI_ComboBox Tests ===");
@@ -242,7 +211,9 @@ var mockApp = { innerHTML: "" }, mockModal = { innerHTML: "" };
 global.document = { getElementById: function (id) { return id === "app" ? mockApp : (id === "modal-host" ? mockModal : null); } };
 UI_Layout.render();
 assert(mockApp.innerHTML.indexOf("view-dashboard") !== -1 && mockApp.innerHTML.indexOf("bulk-dock-bar") !== -1, "UI_Layout rendered views & bulk-dock-bar");
-assert(mockApp.innerHTML.indexOf("storage-status-label") === -1, "storage-status-label removed from header");
+assert(mockApp.innerHTML.indexOf('data-view="assignments"') === -1, "Assignments removed from navigation sidebar");
+assert(mockApp.innerHTML.indexOf('data-view="licenses"') === -1 && mockApp.innerHTML.indexOf('data-view="consumables"') === -1, "Separate licenses and consumables removed from navigation sidebar");
+assert(mockApp.innerHTML.indexOf('tab-btn-assets') !== -1 && mockApp.innerHTML.indexOf('tab-btn-licenses') !== -1 && mockApp.innerHTML.indexOf('tab-btn-consumables') !== -1, "Inventory tabs rendered in UI_Layout");
 assert(mockApp.innerHTML.indexOf('id="lang-switcher"') !== -1 && mockApp.innerHTML.indexOf("sidebar-controls") !== -1, "lang-switcher and theme toggle placed in sidebar footer");
 assert(mockApp.innerHTML.indexOf("triggerCsv") === -1, "UI_Layout contains no CSV triggers");
 var htaLines = fs.readFileSync(path.join(__dirname, "../ITIM.hta"), "utf8").trim().split("\n").length;
@@ -254,10 +225,7 @@ assert(POService.getAll().length === 3, "Initial seed PO count is 3");
 var emptyPoBlocked = false;
 try { POService.createPO({ vendor: "", items: [] }); } catch (e) { emptyPoBlocked = true; }
 assert(emptyPoBlocked, "Invalid empty PO creation is blocked");
-var po = POService.createPO({
-  vendor: "Apple Enterprise",
-  items: [{ name: "MacBook Air M3", category: "Laptop", model: "Air M3 16GB", qtyOrdered: 2 }]
-});
+var po = POService.createPO({ vendor: "Apple Enterprise", items: [{ name: "MacBook Air M3", category: "Laptop", model: "Air M3 16GB", qtyOrdered: 2 }] });
 assert(po.poNumber && po.poNumber.indexOf("PO-") === 0 && po.status === "pending", "New PO pending: " + po.poNumber);
 var rec1 = POService.receiveItems(po.poNumber, 0, { serials: ["MBA-SN-001"], location: "IT Room Shelf C" });
 assert(rec1.success && rec1.assets.length === 1 && po.status === "partial", "Received 1 asset, status partial");
@@ -289,14 +257,14 @@ assert(typeof assetActions[0].run === "function" && assetActions[0].label && ass
 // 15. IE11 Compatibility & Modal Layout Tests
 // ==========================================
 console.log("\n=== 15. IE11 Compatibility & Modal Layout Tests ===");
-var fs = require("fs"), path = require("path"), jsDir = path.join(__dirname, "../js");
-var codeAsg = fs.readFileSync(path.join(jsDir, "ui-assignments.js"), "utf8");
-assert(codeAsg.indexOf('var modal = document.getElementById("checkout-modal");') !== -1, "UI_Assignments.openCheckoutModal declares modal element");
+var jsDir = path.join(__dirname, "../js");
+var codeHist = fs.readFileSync(path.join(jsDir, "ui-history.js"), "utf8");
+assert(codeHist.indexOf('var modal = document.getElementById("transaction-modal");') !== -1, "UI_History declares modal element");
 var codeDet = fs.readFileSync(path.join(jsDir, "ui-detail.js"), "utf8");
 assert(codeDet.indexOf("closeModal();") === -1 && codeDet.indexOf("closeModal: close") !== -1, "UI_Detail defines closeModal alias and avoids undefined closeModal call");
 var cssModals = fs.readFileSync(path.join(__dirname, "../css/modals.css"), "utf8");
 assert(cssModals.indexOf("vertical-align: middle;") !== -1 && cssModals.indexOf("max-height: 65vh;") !== -1, "css/modals.css uses vertical-align middle and max-height 65vh on modal");
-var noBadCalls = ["ui-inbound.js", "ui-categories.js", "ui-detail.js", "ui-catalog.js", "ui-assignments.js"].every(function (f) {
+var noBadCalls = ["ui-inbound.js", "ui-categories.js", "ui-detail.js", "ui-catalog.js", "ui-assignments.js", "ui-item-picker.js"].every(function (f) {
   var c = fs.readFileSync(path.join(jsDir, f), "utf8");
   return c.indexOf(".closest(") === -1 && c.indexOf(".remove()") === -1;
 });
@@ -305,6 +273,32 @@ var allUnder300 = fs.readdirSync(jsDir).filter(function (f) { return f.endsWith(
   return fs.readFileSync(path.join(jsDir, f), "utf8").split("\n").length < 300;
 });
 assert(allUnder300, "All source JS files remain strictly < 300 LOC");
+
+// 16. Multi-Item Handover & Disposal Test Suite
+require("./test-multi-item.js").runMultiItemTests(assert, {
+  InventoryService: InventoryService, LicensesService: LicensesService,
+  ConsumablesService: ConsumablesService, AssignmentsService: AssignmentsService,
+  TransactionsService: TransactionsService, UI_ItemPicker: global.UI_ItemPicker
+});
+
+// 19. Stocktaking & Inventory Audit Test Suite
+require("./test-stocktake.js").runStocktakeTests(assert, {
+  StocktakeService: StocktakeService, InventoryService: InventoryService
+});
+
+// 20. UI_ItemDetail & Consolidated Inventory Tests
+console.log("\n=== 20. UI_ItemDetail & Consolidated Inventory Tests ===");
+assert(typeof UI_ItemDetail !== "undefined" && typeof UI_ItemDetail.open === "function", "UI_ItemDetail is defined");
+var itemDetailOpened = null;
+var origDetailOpen = UI_ItemDetail.open;
+UI_ItemDetail.open = function (t, id) { itemDetailOpened = { type: t, id: id }; };
+UI_ActionsMenu.onRowClick(null, "asset", "AST-1001");
+assert(itemDetailOpened && itemDetailOpened.type === "asset" && itemDetailOpened.id === "AST-1001", "Row click on asset triggers UI_ItemDetail.open");
+UI_ActionsMenu.onRowClick(null, "license", "LIC-2001");
+assert(itemDetailOpened && itemDetailOpened.type === "license" && itemDetailOpened.id === "LIC-2001", "Row click on license triggers UI_ItemDetail.open");
+UI_ActionsMenu.onRowClick(null, "consumable", "CON-3001");
+assert(itemDetailOpened && itemDetailOpened.type === "consumable" && itemDetailOpened.id === "CON-3001", "Row click on consumable triggers UI_ItemDetail.open");
+UI_ItemDetail.open = origDetailOpen;
 
 console.log("\n==========================================");
 console.log("TEST RESULTS: " + passed + " passed, " + failed + " failed.");

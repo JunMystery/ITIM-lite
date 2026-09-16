@@ -49,34 +49,48 @@ var TransactionsService = (function () {
   }
 
   function checkoutBulk(params) {
-    var db = getDb();
+    var rawItems = params.items || [];
     var assetIds = params.assetIds || [];
-    if (assetIds.length === 0) return { success: false, error: "No assets specified." };
+    if (rawItems.length === 0 && assetIds.length === 0) return { success: false, error: "No items specified." };
     if (!params.employeeName) return { success: false, error: "Employee name is required." };
 
     var items = [];
-    for (var i = 0; i < assetIds.length; i++) {
-      var asset = InventoryService.getById(assetIds[i]);
-      if (asset) {
-        items.push({
-          assetId: asset.id,
-          name: asset.name,
-          category: asset.category,
-          serial: asset.serial || "",
-          model: asset.model || "",
-          condition: params.condition || "Good / Functional"
-        });
-        InventoryService.update(asset.id, {
-          status: "inuse",
-          assignedTo: params.employeeName,
-          department: params.department || asset.department
-        });
+    if (rawItems.length > 0) {
+      for (var i = 0; i < rawItems.length; i++) {
+        var it = rawItems[i];
+        var type = it.itemType || "asset";
+        if (type === "asset") {
+          var aId = it.assetId || it.id;
+          var asset = InventoryService.getById(aId);
+          if (asset) {
+            items.push({ itemType: "asset", assetId: asset.id, name: asset.name, category: asset.category, serial: asset.serial || "", condition: it.condition || params.condition || "Good / Functional" });
+            InventoryService.update(asset.id, { status: "inuse", assignedTo: params.employeeName, department: params.department || asset.department });
+          }
+        } else if (type === "consumable") {
+          var con = ConsumablesService.getById(it.id);
+          var cQty = it.quantity || 1;
+          items.push({ itemType: "consumable", assetId: it.id, name: con ? con.name : it.name, category: con ? con.category : "Consumable", quantity: cQty, condition: "Issued" });
+          if (typeof ConsumablesService !== "undefined" && con) ConsumablesService.adjustQuantity(it.id, -cQty);
+        } else if (type === "license") {
+          var lic = LicensesService.getById(it.id);
+          items.push({ itemType: "license", assetId: it.id, name: lic ? lic.software : it.name, category: lic ? lic.vendor : "Software", quantity: 1, condition: "Assigned" });
+          if (typeof LicensesService !== "undefined" && lic) LicensesService.update(it.id, { assignedSeats: (parseInt(lic.assignedSeats, 10) || 0) + 1 });
+        }
+      }
+    } else {
+      for (var aIdx = 0; aIdx < assetIds.length; aIdx++) {
+        var ast = InventoryService.getById(assetIds[aIdx]);
+        if (ast) {
+          items.push({ itemType: "asset", assetId: ast.id, name: ast.name, category: ast.category, serial: ast.serial || "", condition: params.condition || "Good / Functional" });
+          InventoryService.update(ast.id, { status: "inuse", assignedTo: params.employeeName, department: params.department || ast.department });
+        }
       }
     }
 
     var record = {
       id: generateNextTxnId(),
       type: "CHECKOUT",
+      status: "active",
       timestamp: getNowTimestamp(),
       employeeName: params.employeeName,
       employeeEmail: params.employeeEmail || "",
@@ -90,32 +104,51 @@ var TransactionsService = (function () {
 
     getAll().unshift(record);
     if (typeof AuditService !== "undefined") {
-      AuditService.log("TRANSACTION_CHECKOUT", "Transaction " + record.id + ": Checked out " + items.length + " assets to " + params.employeeName);
+      AuditService.log("TRANSACTION_CHECKOUT", "Transaction " + record.id + ": Checked out " + items.length + " items to " + params.employeeName);
     }
     AppState.save();
     return { success: true, transaction: record };
   }
 
   function checkinBulk(params) {
+    var rawItems = params.items || [];
     var assetIds = params.assetIds || [];
-    if (assetIds.length === 0) return { success: false, error: "No assets specified." };
+    var disps = params.dispositions || {};
+    if (rawItems.length === 0 && assetIds.length === 0) return { success: false, error: "No items specified." };
 
     var items = [];
-    for (var i = 0; i < assetIds.length; i++) {
-      var asset = InventoryService.getById(assetIds[i]);
-      if (asset) {
-        items.push({
-          assetId: asset.id,
-          name: asset.name,
-          category: asset.category,
-          serial: asset.serial || "",
-          previousAssignee: asset.assignedTo || "",
-          condition: params.condition || "Good / Normal Wear"
-        });
-        InventoryService.update(asset.id, {
-          status: "available",
-          assignedTo: ""
-        });
+    if (rawItems.length > 0) {
+      for (var i = 0; i < rawItems.length; i++) {
+        var it = rawItems[i];
+        var type = it.itemType || "asset";
+        var itemId = it.assetId || it.id;
+        var disp = disps[itemId] || it.disposition || "return";
+        if (type === "asset") {
+          var asset = InventoryService.getById(itemId);
+          if (asset) {
+            items.push({ itemType: "asset", assetId: asset.id, name: asset.name, category: asset.category, serial: asset.serial || "", disposition: disp, condition: disp === "disposal" ? "Disposed" : (params.condition || "Returned") });
+            InventoryService.update(asset.id, { status: (disp === "disposal" ? "retired" : "available"), assignedTo: "" });
+          }
+        } else if (type === "consumable") {
+          items.push({ itemType: "consumable", assetId: itemId, name: it.name, category: "Consumable", quantity: it.quantity || 1, disposition: disp, condition: disp === "disposal" ? "Disposed" : "Returned" });
+          if (disp === "return" && typeof ConsumablesService !== "undefined") ConsumablesService.adjustQuantity(itemId, it.quantity || 1);
+          else if (typeof AuditService !== "undefined") AuditService.log("CONSUMABLE_DISPOSAL", "Consumable " + itemId + " marked disposed upon check-in");
+        } else if (type === "license") {
+          items.push({ itemType: "license", assetId: itemId, name: it.name, category: "Software", quantity: 1, disposition: disp, condition: disp === "disposal" ? "Decommissioned" : "Returned" });
+          if (disp === "return" && typeof LicensesService !== "undefined") {
+            var lic = LicensesService.getById(itemId);
+            if (lic) LicensesService.update(itemId, { assignedSeats: Math.max(0, (parseInt(lic.assignedSeats, 10) || 0) - 1) });
+          }
+        }
+      }
+    } else {
+      for (var j = 0; j < assetIds.length; j++) {
+        var a = InventoryService.getById(assetIds[j]);
+        if (a) {
+          var aDisp = disps[a.id] || "return";
+          items.push({ itemType: "asset", assetId: a.id, name: a.name, category: a.category, serial: a.serial || "", disposition: aDisp, condition: aDisp === "disposal" ? "Disposed" : "Good" });
+          InventoryService.update(a.id, { status: (aDisp === "disposal" ? "retired" : "available"), assignedTo: "" });
+        }
       }
     }
 
@@ -130,9 +163,22 @@ var TransactionsService = (function () {
       itemCount: items.length
     };
 
+    // Update parent checkout transaction status if linked or matching
+    if (params.parentTxnId) {
+      var pTxn = getById(params.parentTxnId);
+      if (pTxn) { pTxn.status = "returned"; pTxn.returnTxnId = record.id; }
+    } else {
+      for (var mi = 0; mi < items.length; mi++) {
+        if (items[mi].itemType === "asset") {
+          var act = getActiveByAsset(items[mi].assetId);
+          if (act) { act.status = "returned"; act.returnTxnId = record.id; }
+        }
+      }
+    }
+
     getAll().unshift(record);
     if (typeof AuditService !== "undefined") {
-      AuditService.log("TRANSACTION_CHECKIN", "Transaction " + record.id + ": Returned " + items.length + " assets to stock");
+      AuditService.log("TRANSACTION_CHECKIN", "Transaction " + record.id + ": Returned/disposed " + items.length + " items");
     }
     AppState.save();
     return { success: true, transaction: record };
@@ -145,13 +191,7 @@ var TransactionsService = (function () {
     for (var i = 0; i < assetIds.length; i++) {
       var asset = InventoryService.getById(assetIds[i]);
       if (asset) {
-        items.push({
-          assetId: asset.id,
-          name: asset.name,
-          category: asset.category,
-          serial: asset.serial || "",
-          previousStatus: asset.status
-        });
+        items.push({ itemType: "asset", assetId: asset.id, name: asset.name, category: asset.category, serial: asset.serial || "", previousStatus: asset.status });
         InventoryService.update(asset.id, { status: newStatus });
       }
     }
@@ -177,48 +217,75 @@ var TransactionsService = (function () {
 
   function generateReceiptHtml(txn) {
     if (!txn) return "";
-    var rows = [];
+    var hwRows = [], conRows = [], licRows = [];
     for (var i = 0; i < (txn.items || []).length; i++) {
       var it = txn.items[i];
-      rows.push("<tr>" +
-        "<td>" + (i + 1) + "</td>" +
-        "<td><strong>" + it.assetId + "</strong></td>" +
-        "<td>" + it.name + " (" + (it.category || "") + ")</td>" +
-        "<td>" + (it.serial || "-") + "</td>" +
-        "<td>" + (it.condition || "Good") + "</td>" +
-      "</tr>");
+      var t = it.itemType || "asset";
+      var statusText = it.disposition ? (it.disposition === "disposal" ? "Disposal / Retired" : "Returned to Stock") : (it.condition || "Issued");
+      if (t === "consumable") {
+        conRows.push("<tr><td>" + (conRows.length + 1) + "</td><td><strong>" + (it.assetId || it.id) + "</strong></td><td>" + it.name + "</td><td>" + (it.quantity || 1) + "</td><td>" + statusText + "</td></tr>");
+      } else if (t === "license") {
+        licRows.push("<tr><td>" + (licRows.length + 1) + "</td><td><strong>" + (it.assetId || it.id) + "</strong></td><td>" + it.name + "</td><td>1 Seat</td><td>" + statusText + "</td></tr>");
+      } else {
+        hwRows.push("<tr><td>" + (hwRows.length + 1) + "</td><td><strong>" + (it.assetId || it.id) + "</strong></td><td>" + it.name + "</td><td>" + (it.serial || "-") + "</td><td>" + statusText + "</td></tr>");
+      }
+    }
+
+    var tablesHtml = "";
+    if (hwRows.length > 0) {
+      tablesHtml += '<div style="font-weight:bold; margin-top:12px; font-size:13px;">1. Hardware Equipment (' + hwRows.length + ')</div>' +
+        '<table><thead><tr><th style="width:30px;">#</th><th style="width:90px;">Asset ID</th><th>Name / Model</th><th style="width:120px;">Serial No</th><th style="width:110px;">Status/Condition</th></tr></thead><tbody>' + hwRows.join("") + '</tbody></table>';
+    }
+    if (conRows.length > 0) {
+      tablesHtml += '<div style="font-weight:bold; margin-top:12px; font-size:13px;">2. Consumables &amp; Accessories (' + conRows.length + ')</div>' +
+        '<table><thead><tr><th style="width:30px;">#</th><th style="width:90px;">ID</th><th>Item Description</th><th style="width:60px;">Qty</th><th style="width:110px;">Status/Condition</th></tr></thead><tbody>' + conRows.join("") + '</tbody></table>';
+    }
+    if (licRows.length > 0) {
+      tablesHtml += '<div style="font-weight:bold; margin-top:12px; font-size:13px;">3. Software Licenses (' + licRows.length + ')</div>' +
+        '<table><thead><tr><th style="width:30px;">#</th><th style="width:90px;">ID</th><th>Software Product</th><th style="width:60px;">Allocation</th><th style="width:110px;">Status/Condition</th></tr></thead><tbody>' + licRows.join("") + '</tbody></table>';
     }
 
     return "<!DOCTYPE html><html><head><title>Transaction Receipt - " + txn.id + "</title>" +
-      "<style>body { font-family: Arial, sans-serif; margin: 30px; line-height: 1.5; color: #222; } .header { border-bottom: 2px solid #000; padding-bottom: 12px; margin-bottom: 20px; } .title { font-size: 20px; font-weight: bold; text-transform: uppercase; margin: 0; } .meta { font-size: 12px; color: #555; } table { width: 100%; border-collapse: collapse; margin: 18px 0; } th, td { border: 1px solid #ccc; padding: 8px 12px; text-align: left; font-size: 12px; } th { background: #f5f5f5; font-weight: bold; } .policy { font-size: 11px; color: #444; margin-top: 25px; border: 1px solid #ddd; padding: 10px; background: #fafafa; } .signatures { display: flex; justify-content: space-between; margin-top: 50px; } .sig-block { width: 45%; border-top: 1px solid #000; padding-top: 6px; font-size: 12px; }</style></head><body>" +
-      '<div class="header"><div class="title">IT Asset Transaction Record & Sign-Off</div><div class="meta">Transaction ID: <strong>' + txn.id + '</strong> | Type: ' + txn.type + ' | Timestamp: ' + txn.timestamp + '</div></div>' +
+      "<style>body { font-family: Arial, sans-serif; margin: 30px; line-height: 1.5; color: #222; } .header { border-bottom: 2px solid #000; padding-bottom: 12px; margin-bottom: 20px; } .title { font-size: 18px; font-weight: bold; text-transform: uppercase; margin: 0; } .meta { font-size: 12px; color: #555; } table { width: 100%; border-collapse: collapse; margin: 8px 0 16px 0; } th, td { border: 1px solid #ccc; padding: 6px 10px; text-align: left; font-size: 12px; } th { background: #f5f5f5; font-weight: bold; } .policy { font-size: 11px; color: #444; margin-top: 20px; border: 1px solid #ddd; padding: 8px; background: #fafafa; } .signatures { display: flex; justify-content: space-between; margin-top: 40px; } .sig-block { width: 45%; border-top: 1px solid #000; padding-top: 6px; font-size: 12px; }</style></head><body>" +
+      '<div class="header"><div class="title">IT Asset &amp; Consumables Handover Record</div><div class="meta">Transaction ID: <strong>' + txn.id + '</strong> | Type: ' + txn.type + ' | Timestamp: ' + txn.timestamp + '</div></div>' +
       '<div style="margin-bottom:12px; font-size:13px;"><strong>Recipient / Party:</strong> ' + (txn.employeeName || "N/A") + ' &nbsp;|&nbsp; <strong>Department:</strong> ' + (txn.department || "N/A") + ' &nbsp;|&nbsp; <strong>Expected Return:</strong> ' + (txn.expectedReturnDate || "Indefinite") + '</div>' +
-      '<table><thead><tr><th style="width:30px;">#</th><th style="width:100px;">Asset ID</th><th>Asset Description</th><th style="width:130px;">Serial No</th><th style="width:110px;">Condition</th></tr></thead><tbody>' +
-      rows.join("") +
-      '</tbody></table>' +
-      '<div class="policy"><strong>Acknowledgement:</strong> By signing below, the recipient acknowledges physical receipt of the equipment listed above in the condition noted, and accepts responsibility for safe custody under corporate IT policy.</div>' +
+      tablesHtml +
+      '<div class="policy"><strong>Acknowledgement:</strong> By signing below, the recipient acknowledges receipt of the equipment, accessories, and software licenses listed above, and accepts responsibility under corporate IT policy.</div>' +
       '<div class="signatures"><div class="sig-block"><strong>Employee Signature:</strong><br><br><br>Name: ' + (txn.employeeName || "") + '<br>Date: _______________</div><div class="sig-block"><strong>Issuing IT Officer:</strong><br><br><br>Name: ' + (txn.officer || "IT Admin") + '<br>Date: _______________</div></div>' +
       "<script>window.onload = function() { window.print(); };<\/script></body></html>";
+  }
+
+  function getActiveHandovers() {
+    return getAll().filter(function (t) {
+      return t.type === "CHECKOUT" && t.status === "active";
+    });
+  }
+
+  function getActiveByAsset(assetId) {
+    var list = getActiveHandovers();
+    for (var i = 0; i < list.length; i++) {
+      var itms = list[i].items || [];
+      for (var j = 0; j < itms.length; j++) {
+        if (itms[j].assetId === assetId || itms[j].id === assetId) return list[i];
+      }
+    }
+    return null;
   }
 
   function printTransactionReceipt(txnId) {
     var txn = getById(txnId);
     if (!txn) return;
-
-    var printWindow = window.open("", "_blank", "width=850,height=750");
-    if (!printWindow) {
-      alert("Popup blocked. Please allow popups to print transaction receipts.");
-      return;
-    }
-
-    var html = generateReceiptHtml(txn);
-    printWindow.document.write(html);
-    printWindow.document.close();
+    var w = window.open("", "_blank", "width=850,height=750");
+    if (!w) { alert("Popup blocked. Please allow popups to print transaction receipts."); return; }
+    w.document.write(generateReceiptHtml(txn));
+    w.document.close();
   }
 
   return {
     getAll: getAll,
     getById: getById,
+    getActiveHandovers: getActiveHandovers,
+    getActiveByAsset: getActiveByAsset,
     generateNextTxnId: generateNextTxnId,
     checkoutBulk: checkoutBulk,
     checkinBulk: checkinBulk,

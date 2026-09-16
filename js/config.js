@@ -153,7 +153,7 @@ var ITIM_CONFIG = {
     ],
     transactions: [
       {
-        id: "TXN-5001", type: "CHECKOUT", timestamp: "2024-03-20 09:30:00", employeeName: "Sarah Jenkins",
+        id: "TXN-5001", type: "CHECKOUT", status: "active", timestamp: "2024-03-20 09:30:00", employeeName: "Sarah Jenkins",
         department: "Engineering", expectedReturnDate: "", officer: "IT Admin", itemCount: 1,
         notes: "Issued upon employee onboarding.",
         items: [{ assetId: "AST-1001", name: "Dell Latitude 5530", category: "Laptop", serial: "8HG3F42", condition: "Brand New in Box" }]
@@ -186,6 +186,26 @@ var ITIM_CONFIG = {
     auditLogs: [
       { timestamp: "2024-03-20 09:30:00", action: "CHECKOUT", detail: "Asset AST-1001 checked out to Sarah Jenkins (Engineering)" },
       { timestamp: "2024-06-10 14:15:00", action: "ASSET_CREATE", detail: "New asset AST-1002 (Dell Latitude 5530) added to inventory" }
+    ],
+    stocktakeSessions: [
+      {
+        id: "STK-7001",
+        name: "Q1 Initial Fleet Stocktake",
+        scope: { type: "all", value: "All Assets" },
+        status: "completed",
+        createdAt: "2024-03-01 08:00:00",
+        closedAt: "2024-03-01 11:30:00",
+        auditor: "IT Admin",
+        notes: "Baseline physical audit before Q2 onboarding.",
+        expectedAssets: [
+          { assetId: "AST-1001", name: "Dell Latitude 5530", category: "Laptop", serial: "8HG3F42", status: "inuse", location: "Floor 3 - Desk 312" },
+          { assetId: "AST-1004", name: "Cisco Catalyst 1000-24P", category: "Networking", serial: "FOC2419U0X8", status: "inuse", location: "Rack A2 - Patch Panel" }
+        ],
+        scannedAssets: [
+          { assetId: "AST-1001", serial: "8HG3F42", name: "Dell Latitude 5530", category: "Laptop", timestamp: "2024-03-01 09:15:00", actualLocation: "Floor 3 - Desk 312", actualCondition: "Good / Functional", isSurplus: false },
+          { assetId: "AST-1004", serial: "FOC2419U0X8", name: "Cisco Catalyst 1000-24P", category: "Networking", timestamp: "2024-03-01 10:00:00", actualLocation: "Rack A2 - Patch Panel", actualCondition: "Good / Functional", isSurplus: false }
+        ]
+      }
     ],
     settings: {
       storagePath: ".\\data", storageType: "local", backupsPerDay: 4, autoBackupIntervalMin: 360,

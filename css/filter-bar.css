@@ -9,6 +9,10 @@
   margin-bottom: 10px;
   flex-wrap: wrap;
 }
+.table-toolbar > * {
+  margin-right: 8px;
+  margin-bottom: 6px;
+}
 
 .table-toolbar .toolbar-search-wrap {
   position: relative;
@@ -32,7 +36,7 @@
   height: 32px;
   padding: 4px 28px 4px 30px;
   font-size: 13px;
-  border: 1px solid #d1d1d1;
+  border: 1px solid #d1d5db;
   border-radius: 4px;
   background: #ffffff;
   color: #1a1a1a;
@@ -71,16 +75,17 @@
   padding: 0 12px;
   font-size: 12px;
   font-weight: 500;
-  border: 1px solid #d1d1d1;
+  border: 1px solid #d1d5db;
   border-radius: 4px;
   background: #ffffff;
   color: #1a1a1a;
   cursor: pointer;
 }
+.table-toolbar .toolbar-btn-filter > * + * { margin-left: 6px; }
 
 .table-toolbar .toolbar-btn-filter:hover {
-  background: #f0f0f0;
-  border-color: #8a8a8a;
+  background: #f3f4f6;
+  border-color: #9ca3af;
 }
 
 .table-toolbar .filter-badge {
@@ -116,6 +121,7 @@
   gap: 6px;
   flex-wrap: wrap;
 }
+.table-toolbar .filter-active-pills > * { margin-right: 6px; }
 
 .table-toolbar .filter-pill {
   display: inline-flex;
@@ -127,6 +133,7 @@
   color: #0067b8;
   border-radius: 12px;
 }
+.table-toolbar .filter-pill > * + * { margin-left: 4px; }
 
 .table-toolbar .filter-pill-remove {
   cursor: pointer;

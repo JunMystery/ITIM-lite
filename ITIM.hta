@@ -2,20 +2,56 @@
 <html lang="en">
 <head>
   <meta http-equiv="x-ua-compatible" content="IE=edge" />
-  <hta:application id="oITIM" applicationname="ITIM-lite" border="thin" borderstyle="normal" caption="yes" contextmenu="yes" maximizebutton="yes" minimizebutton="yes" navigable="yes" scroll="no" scrollflat="yes" selection="yes" showintaskbar="yes" singleinstance="yes" sysmenu="yes" version="2.0" windowstate="normal" />
+  <hta:application id="oITIM" applicationname="AssetOps" border="thin" borderstyle="normal" caption="yes" contextmenu="yes" maximizebutton="yes" minimizebutton="yes" navigable="yes" scroll="no" scrollflat="yes" selection="yes" showintaskbar="yes" singleinstance="yes" sysmenu="yes" version="2.0" windowstate="normal" />
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ITIM-lite - IT Inventory Management</title>
-  
-  <link rel="stylesheet" href="dist/assets/index-Cw9TF_kG.css">
-  
-  
+  <title>AssetOps - IT Asset Management</title>
+  <link rel="stylesheet" href="css/tailwind.min.css" />
+  <link rel="stylesheet" href="css/theme.css" />
+  <link rel="stylesheet" href="css/layout.css" />
+  <link rel="stylesheet" href="css/components.css" />
+  <link rel="stylesheet" href="css/modals.css" />
+  <link rel="stylesheet" href="css/filter-bar.css" /><link rel="stylesheet" href="css/combobox.css" /><link rel="stylesheet" href="css/print.css" />
 </head>
-<body class="bg-gray-50 text-gray-900 antialiased min-h-screen">
-<div id="app"></div>
-<div id="modal-host"></div>
-  
-  <script id="vite-legacy-polyfill" src="dist/assets/polyfills-legacy-BJdjhcAX.js"></script>
-  <script id="vite-legacy-entry" data-src="dist/assets/index-legacy-Cm5v6Wv4.js">System.import(document.getElementById('vite-legacy-entry').getAttribute('data-src'))</script>
+<body class="antialiased min-h-screen">
+<div id="app"></div><div id="modal-host"></div>
+
+<script src="js/config.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/fso-storage.js"></script>
+<script src="js/backup-engine.js"></script>
+<script src="js/barcode-qr.js"></script>
+<script src="js/inventory-service.js"></script>
+<script src="js/licenses-service.js"></script>
+<script src="js/consumables-service.js"></script>
+<script src="js/assignments-service.js"></script>
+<script src="js/transactions-service.js"></script>
+<script src="js/stocktake-service.js"></script>
+<script src="js/category-service.js"></script>
+<script src="js/catalog-service.js"></script>
+<script src="js/po-service.js"></script>
+<script src="js/export-import.js"></script>
+<script src="js/ui-notifications.js"></script>
+<script src="js/ui-layout.js"></script>
+<script src="js/ui-nav.js"></script>
+<script src="js/ui-dashboard.js"></script>
+<script src="js/ui-combobox.js"></script>
+<script src="js/ui-pagination.js"></script>
+<script src="js/ui-filter-bar.js"></script>
+<script src="js/ui-actions-menu.js"></script>
+<script src="js/ui-categories.js"></script>
+<script src="js/ui-assets.js"></script>
+<script src="js/ui-inbound.js"></script>
+<script src="js/ui-catalog.js"></script>
+<script src="js/ui-item-detail.js"></script><script src="js/ui-asset-modal.js"></script>
+<script src="js/ui-licenses.js"></script>
+<script src="js/ui-consumables.js"></script>
+<script src="js/ui-item-picker.js"></script>
+<script src="js/ui-assignments.js"></script>
+<script src="js/ui-detail.js"></script>
+<script src="js/ui-history.js"></script>
+<script src="js/ui-audit.js"></script>
+<script src="js/ui-settings.js"></script>
+<script src="js/app.js"></script>
 </body>
 </html>

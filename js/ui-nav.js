@@ -5,14 +5,27 @@
 var NavController = (function () {
   var activeView = "dashboard";
 
-  function switchView(viewName) {
+  function switchView(viewName, tabName) {
+    if (viewName === "licenses") {
+      switchView("assets", "licenses");
+      return;
+    }
+    if (viewName === "consumables") {
+      switchView("assets", "consumables");
+      return;
+    }
+    if (viewName === "inventory") {
+      switchView("assets", tabName);
+      return;
+    }
+
     activeView = viewName;
 
     // Update sidebar nav items
     var navItems = document.querySelectorAll(".nav-item");
     for (var i = 0; i < navItems.length; i++) {
       var item = navItems[i];
-      if (item.getAttribute("data-view") === viewName) {
+      if (item.getAttribute("data-view") === viewName || (viewName === "assets" && item.getAttribute("data-view") === "inventory")) {
         item.className = "nav-item active";
       } else {
         item.className = "nav-item";
@@ -34,19 +47,20 @@ var NavController = (function () {
     if (viewName === "dashboard" && typeof UI_Dashboard !== "undefined") {
       UI_Dashboard.render();
     } else if (viewName === "assets" && typeof UI_Assets !== "undefined") {
-      UI_Assets.render();
+      if (tabName && typeof UI_Assets.switchTab === "function") {
+        UI_Assets.switchTab(tabName);
+      } else {
+        UI_Assets.render();
+      }
     } else if (viewName === "inbound" && typeof UI_Inbound !== "undefined") {
       UI_Inbound.render();
-    } else if (viewName === "licenses" && typeof UI_Licenses !== "undefined") {
-      UI_Licenses.render();
-    } else if (viewName === "consumables" && typeof UI_Consumables !== "undefined") {
-      UI_Consumables.render();
-    } else if (viewName === "assignments" && typeof UI_Assignments !== "undefined") {
-      UI_Assignments.render();
+    } else if (viewName === "assignments") {
+      switchView("history");
+      return;
     } else if (viewName === "history" && typeof UI_History !== "undefined") {
       UI_History.render();
-    } else if (viewName === "audit" && typeof UI_Dashboard !== "undefined") {
-      UI_Dashboard.renderAuditLogs();
+    } else if (viewName === "audit" && typeof UI_Audit !== "undefined") {
+      UI_Audit.render();
     } else if (viewName === "catalog" && typeof UI_Catalog !== "undefined") {
       UI_Catalog.render();
     } else if (viewName === "settings" && typeof UI_Settings !== "undefined") {
@@ -58,8 +72,11 @@ var NavController = (function () {
 
   function updateBadges() {
     var assetCountEl = document.getElementById("nav-badge-assets");
-    if (assetCountEl && typeof InventoryService !== "undefined") {
-      assetCountEl.innerText = InventoryService.getAll().length;
+    if (assetCountEl) {
+      var astCount = (typeof InventoryService !== "undefined") ? InventoryService.getAll().length : 0;
+      var licCount = (typeof LicensesService !== "undefined") ? LicensesService.getAll().length : 0;
+      var conCount = (typeof ConsumablesService !== "undefined") ? ConsumablesService.getAll().length : 0;
+      assetCountEl.innerText = (astCount + licCount + conCount);
     }
 
     var inbCountEl = document.getElementById("nav-badge-inbound");

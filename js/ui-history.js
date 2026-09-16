@@ -6,6 +6,8 @@ var UI_History = (function () {
   var selectedAssetIds = [];
   var currentPage = 1;
   var currentPageSize = 10;
+  var picker = null;
+  var currentParentTxnId = null;
 
   function ensureModal() {
     if (document.getElementById("transaction-modal")) return;
@@ -13,17 +15,17 @@ var UI_History = (function () {
     var div = document.createElement("div");
     div.id = "transaction-modal"; div.className = "modal-backdrop";
     div.onclick = function (e) { e = e || window.event; if ((e.target || e.srcElement) === div) closeModal(); };
-    div.innerHTML = '<div class="modal" style="width:620px; max-width:92vw;">' +
-      '<div class="modal-header"><h3 id="txn-modal-title">Create Multi-Item Transaction</h3><button class="btn btn-sm" onclick="UI_History.closeModal()">✕</button></div>' +
+    div.innerHTML = '<div class="modal" style="width:640px; max-width:92vw;">' +
+      '<div class="modal-header"><h3 id="txn-modal-title">Multi-Item Transaction</h3><button class="btn btn-sm" onclick="UI_History.closeModal()">✕</button></div>' +
       '<div class="modal-body">' +
-        '<div style="background:#f5f5f5; padding:10px; border-radius:4px; margin-bottom:12px;">' +
-          '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;"><span style="font-size:12px; font-weight:600;">Selected Assets (<span id="txn-selected-count">0</span>):</span></div>' +
-          '<div id="txn-selected-chips" style="display:flex; flex-wrap:wrap; gap:6px; min-height:28px; max-height:80px; overflow-y:auto; margin-bottom:8px;"></div>' +
-          (typeof UI_ComboBox !== "undefined" ? UI_ComboBox.renderHtml("txn-asset-picker", [], "", "searchable-combo-sm", 'onchange="UI_History.addAssetFromPicker(this.value)"') : '<select id="txn-asset-picker" class="form-select combo-box" onchange="UI_History.addAssetFromPicker(this.value)" style="font-size:12px;"></select>') +
-        '</div>' +
         '<div class="form-row">' +
-          '<div class="form-group"><label class="form-label">Transaction Type:</label>' + (typeof UI_ComboBox !== "undefined" ? UI_ComboBox.renderHtml("txn-input-type", [{value:"CHECKOUT",label:"Check-out (Assign to Staff)"},{value:"CHECKIN",label:"Check-in (Return to Stock)"},{value:"repair",label:"Send to Repair"},{value:"retired",label:"Retire / Dispose"}], "CHECKOUT", "", 'onchange="UI_History.onTypeChange()"') : '<select id="txn-input-type" class="form-select combo-box" onchange="UI_History.onTypeChange()"><option value="CHECKOUT">Check-out (Assign to Staff)</option><option value="CHECKIN">Check-in (Return to Stock)</option><option value="repair">Send to Repair</option><option value="retired">Retire / Dispose</option></select>') + '</div>' +
+          '<div class="form-group"><label class="form-label">Transaction Type:</label>' + (typeof UI_ComboBox !== "undefined" ? UI_ComboBox.renderHtml("txn-input-type", [{value:"CHECKOUT",label:"Check-out (Assign to Staff)"},{value:"CHECKIN",label:"Check-in (Return / Disposal)"},{value:"repair",label:"Send to Repair"},{value:"retired",label:"Retire / Dispose"}], "CHECKOUT", "", 'onchange="UI_History.onTypeChange()"') : '<select id="txn-input-type" class="form-select combo-box" onchange="UI_History.onTypeChange()"><option value="CHECKOUT">Check-out</option><option value="CHECKIN">Check-in</option><option value="repair">Send to Repair</option><option value="retired">Retire / Dispose</option></select>') + '</div>' +
           '<div class="form-group"><label class="form-label">Issuing IT Officer:</label><input type="text" id="txn-input-officer" class="form-input" value="IT Administrator" /></div>' +
+        '</div>' +
+        '<div id="txn-picker-host" style="margin-bottom:10px;"></div>' +
+        '<div id="txn-checkin-fields" style="display:none; background:var(--bg-surface-secondary); padding:8px; border-radius:4px; margin-bottom:10px; border:1px solid var(--border-subtle);">' +
+          '<div style="font-size:12px; font-weight:600; margin-bottom:6px;">Check-in Item Dispositions:</div>' +
+          '<div id="txn-checkin-list"></div>' +
         '</div>' +
         '<div id="txn-checkout-fields">' +
           '<div class="form-row"><div class="form-group"><label class="form-label">Recipient Employee *:</label><input type="text" id="txn-input-employee" class="form-input" placeholder="Full Name" /></div><div class="form-group"><label class="form-label">Department:</label><input type="text" id="txn-input-dept" class="form-input" placeholder="Department" /></div></div>' +
@@ -38,14 +40,17 @@ var UI_History = (function () {
   function initFilterBar() {
     if (typeof UI_FilterBar === "undefined") return;
     UI_FilterBar.init("history", {
-      title: "Transaction History",
+      title: "Transaction History & Handover",
       placeholder: "Search Txn ID, party, notes, items...",
       fields: [
         {
           id: "type", label: "Transaction Type", type: "select",
           options: [
-            { value: "all", label: "All Types" }, { value: "CHECKOUT", label: "CHECKOUT" },
-            { value: "CHECKIN", label: "CHECKIN" }, { value: "INBOUND", label: "INBOUND" },
+            { value: "all", label: "All Types" },
+            { value: "ACTIVE_HANDOVER", label: "Active Handover" },
+            { value: "CHECKOUT", label: "CHECKOUT" },
+            { value: "CHECKIN", label: "CHECKIN" },
+            { value: "INBOUND", label: "INBOUND" },
             { value: "STATUS_CHANGE", label: "STATUS_CHANGE" }
           ]
         },
@@ -67,7 +72,11 @@ var UI_History = (function () {
     }
 
     var list = TransactionsService.getAll();
-    if (curType !== "all") list = list.filter(function (t) { return t.type === curType; });
+    if (curType === "ACTIVE_HANDOVER") {
+      list = list.filter(function (t) { return t.type === "CHECKOUT" && t.status === "active"; });
+    } else if (curType !== "all") {
+      list = list.filter(function (t) { return t.type === curType; });
+    }
     if (curParty) list = list.filter(function (t) { return (t.employeeName || "").toLowerCase().indexOf(curParty) !== -1 || (t.department || "").toLowerCase().indexOf(curParty) !== -1; });
     if (curSearch) {
       list = list.filter(function (t) {
@@ -126,90 +135,67 @@ var UI_History = (function () {
     }
   }
 
-  function updateChips() {
-    var countEl = document.getElementById("txn-selected-count");
-    if (countEl) countEl.innerText = selectedAssetIds.length;
-    var container = document.getElementById("txn-selected-chips");
-    if (!container) return;
-    container.innerHTML = "";
-
-    if (selectedAssetIds.length === 0) {
-      container.innerHTML = '<span style="font-size:11px; color:var(--text-tertiary); line-height:24px;">No items selected yet. Choose from dropdown below:</span>';
+  function updateCheckinList() {
+    var listEl = document.getElementById("txn-checkin-list");
+    if (!listEl || !picker) return;
+    var items = picker.getItems();
+    if (items.length === 0) {
+      listEl.innerHTML = '<span style="font-size:11px; color:var(--text-tertiary);">Select items above to configure return / disposal.</span>';
       return;
     }
-    for (var i = 0; i < selectedAssetIds.length; i++) {
-      var id = selectedAssetIds[i];
-      var a = InventoryService.getById(id);
-      var chip = document.createElement("span");
-      chip.style.cssText = "font-size:11px; background:#fff; padding:2px 8px; border:1px solid #ccc; border-radius:12px; display:inline-flex; align-items:center; gap:4px;";
-      chip.innerHTML = (a ? (a.id + " - " + a.name) : id) + ' <a href="javascript:void(0)" onclick="UI_History.removeAsset(\'' + id + '\')" style="color:#d13438; font-weight:bold; text-decoration:none; margin-left:3px;">✕</a>';
-      container.appendChild(chip);
+    var html = [];
+    var optRet = (typeof I18N !== "undefined" ? I18N.t("action_return_stock") : "Return to Stock");
+    var optDisp = (typeof I18N !== "undefined" ? I18N.t("action_set_disposal") : "Set Disposal / Consumed");
+    for (var i = 0; i < items.length; i++) {
+      var it = items[i];
+      html.push('<div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; margin-bottom:4px; background:#fff; padding:4px 8px; border-radius:3px; border:1px solid var(--border-subtle);">' +
+        '<span><strong>' + it.id + '</strong> - ' + (it.name || it.id) + ' (' + (it.itemType || "asset") + (it.quantity > 1 ? " x" + it.quantity : "") + ')</span>' +
+        '<select id="txn-disp-' + it.id + '" class="form-select" style="width:160px; font-size:11px; padding:1px 4px;">' +
+          '<option value="return">' + optRet + '</option>' +
+          '<option value="disposal">' + optDisp + '</option>' +
+        '</select>' +
+      '</div>');
     }
+    listEl.innerHTML = html.join("");
   }
 
-  function populateAssetPicker() {
-    var assets = InventoryService.getAll();
-    var opts = [{ value: "", label: "+ Add Asset to Transaction..." }];
-    for (var i = 0; i < assets.length; i++) {
-      var a = assets[i];
-      opts.push({ value: a.id, label: a.id + ' - ' + a.name + ' (' + a.status + ')' });
-    }
-    if (typeof UI_ComboBox !== "undefined") {
-      UI_ComboBox.populate("txn-asset-picker", opts, "");
-    } else {
-      var picker = document.getElementById("txn-asset-picker");
-      if (picker) picker.innerHTML = opts.map(function(o){ return '<option value="'+o.value+'">'+o.label+'</option>'; }).join("");
-    }
-  }
-
-  function addAssetFromPicker(id) {
-    if (!id) return;
-    if (selectedAssetIds.indexOf(id) === -1) {
-      selectedAssetIds.push(id);
-      updateChips();
-    }
-    if (typeof UI_ComboBox !== "undefined") {
-      UI_ComboBox.setValue("txn-asset-picker", "");
-    } else {
-      var picker = document.getElementById("txn-asset-picker");
-      if (picker) picker.value = "";
-    }
-  }
-
-  function removeAsset(id) {
-    var idx = selectedAssetIds.indexOf(id);
-    if (idx !== -1) {
-      selectedAssetIds.splice(idx, 1);
-      updateChips();
-    }
-  }
-
-  function openCreateModal() {
-    ensureModal();
-    selectedAssetIds = [];
-    populateAssetPicker();
-    updateChips();
-    document.getElementById("txn-input-type").selectedIndex = 0;
+  function openCreateModal(initType) {
+    currentParentTxnId = null; ensureModal();
+    if (typeof UI_ItemPicker !== "undefined") picker = UI_ItemPicker.init("txn-picker-host", { onChange: updateCheckinList });
+    var t = initType || "CHECKOUT";
+    if (typeof UI_ComboBox !== "undefined") UI_ComboBox.setValue("txn-input-type", t);
+    else if (document.getElementById("txn-input-type")) document.getElementById("txn-input-type").value = t;
     onTypeChange();
-    document.getElementById("txn-input-employee").value = "";
-    document.getElementById("txn-input-dept").value = "";
-    document.getElementById("txn-input-expected").value = "";
-    document.getElementById("txn-input-notes").value = "";
+    var ids = ["employee", "dept", "expected", "notes"];
+    for (var i = 0; i < ids.length; i++) { var el = document.getElementById("txn-input-" + ids[i]); if (el) el.value = ""; }
     document.getElementById("transaction-modal").className = "modal-backdrop open";
   }
 
-  function openBulkModal(assetIds) {
-    ensureModal();
-    selectedAssetIds = (assetIds || []).slice(0);
-    populateAssetPicker();
-    updateChips();
-    if (typeof UI_ComboBox !== "undefined") UI_ComboBox.setValue("txn-input-type", "CHECKOUT");
-    onTypeChange();
-    document.getElementById("txn-input-employee").value = "";
-    document.getElementById("txn-input-dept").value = "";
-    document.getElementById("txn-input-expected").value = "";
-    document.getElementById("txn-input-notes").value = "";
-    document.getElementById("transaction-modal").className = "modal-backdrop open";
+  function openBulkModal(assetIds, initType) {
+    openCreateModal(initType || "CHECKOUT");
+    if (picker && assetIds) { for (var i = 0; i < assetIds.length; i++) picker.addItem("asset", assetIds[i]); }
+  }
+
+  function openCheckinForTxn(txnId) {
+    var txn = TransactionsService.getById(txnId);
+    if (!txn) return;
+    openCreateModal("CHECKIN");
+    currentParentTxnId = txnId;
+    if (picker && txn.items) {
+      for (var i = 0; i < txn.items.length; i++) {
+        var it = txn.items[i];
+        picker.addItem(it.itemType || "asset", it.assetId || it.id, it.quantity || 1);
+      }
+    }
+    var notesEl = document.getElementById("txn-input-notes");
+    if (notesEl) notesEl.value = "Return for " + txnId;
+  }
+
+  function openForAsset(assetId) {
+    var txn = (typeof TransactionsService !== "undefined") ? TransactionsService.getActiveByAsset(assetId) : null;
+    if (txn) { openCheckinForTxn(txn.id); return; }
+    var a = (typeof InventoryService !== "undefined") ? InventoryService.getById(assetId) : null;
+    openBulkModal([assetId], (a && a.status === "inuse") ? "CHECKIN" : "CHECKOUT");
   }
 
   function closeModal() {
@@ -219,16 +205,22 @@ var UI_History = (function () {
 
   function onTypeChange() {
     var type = UI_ComboBox.getValue("txn-input-type") || (document.getElementById("txn-input-type") ? document.getElementById("txn-input-type").value : "CHECKOUT");
-    var f = document.getElementById("txn-checkout-fields");
-    if (f) f.style.display = (type === "CHECKOUT") ? "block" : "none";
+    var fCo = document.getElementById("txn-checkout-fields");
+    var fCi = document.getElementById("txn-checkin-fields");
+    if (fCo) fCo.style.display = (type === "CHECKOUT") ? "block" : "none";
+    if (fCi) {
+      fCi.style.display = (type === "CHECKIN") ? "block" : "none";
+      if (type === "CHECKIN") updateCheckinList();
+    }
   }
 
   function openDetail(txnId) { if (typeof UI_Detail !== "undefined") UI_Detail.open(txnId); }
   function closeDetailModal() { if (typeof UI_Detail !== "undefined") UI_Detail.close(); }
 
   function submitTransaction() {
-    if (selectedAssetIds.length === 0) {
-      Notifications.show("Please select at least one asset for this transaction.", "warning");
+    var items = picker ? picker.getItems() : [];
+    if (items.length === 0) {
+      Notifications.show("Please select at least one item for this transaction.", "warning");
       return;
     }
     var type = UI_ComboBox.getValue("txn-input-type") || document.getElementById("txn-input-type").value;
@@ -238,18 +230,27 @@ var UI_History = (function () {
 
     if (type === "CHECKOUT") {
       var emp = document.getElementById("txn-input-employee").value.trim();
-      if (!emp) { Notifications.show("Please enter employee recipient name.", "warning"); return; }
+      if (!emp) { Notifications.show("Please enter recipient employee name.", "warning"); return; }
       res = TransactionsService.checkoutBulk({
-        assetIds: selectedAssetIds, employeeName: emp,
+        items: items,
+        employeeName: emp,
         department: document.getElementById("txn-input-dept").value.trim(),
         expectedReturnDate: document.getElementById("txn-input-expected").value,
         condition: document.getElementById("txn-input-condition").value.trim(),
-        notes: notes, officer: officer
+        notes: notes,
+        officer: officer
       });
     } else if (type === "CHECKIN") {
-      res = TransactionsService.checkinBulk({ assetIds: selectedAssetIds, notes: notes, officer: officer });
+      var disps = {};
+      for (var i = 0; i < items.length; i++) {
+        var el = document.getElementById("txn-disp-" + items[i].id);
+        disps[items[i].id] = el ? el.value : "return";
+      }
+      res = TransactionsService.checkinBulk({ items: items, dispositions: disps, notes: notes, officer: officer, parentTxnId: currentParentTxnId });
     } else {
-      res = TransactionsService.changeStatusBulk(selectedAssetIds, type, notes);
+      var aIds = [];
+      for (var k = 0; k < items.length; k++) if (items[k].itemType === "asset") aIds.push(items[k].id);
+      res = TransactionsService.changeStatusBulk(aIds.length > 0 ? aIds : items.map(function(x){ return x.id; }), type, notes);
     }
 
     if (res && res.success) {
@@ -273,9 +274,9 @@ var UI_History = (function () {
 
   return {
     render: render, openCreateModal: openCreateModal, openBulkModal: openBulkModal,
+    openCheckinForTxn: openCheckinForTxn, openForAsset: openForAsset,
     closeModal: closeModal, openDetail: openDetail, closeDetailModal: closeDetailModal,
-    onTypeChange: onTypeChange, addAssetFromPicker: addAssetFromPicker,
-    removeAsset: removeAsset, submitTransaction: submitTransaction,
+    onTypeChange: onTypeChange, submitTransaction: submitTransaction,
     setPage: setPage, setPageSize: setPageSize
   };
 })();

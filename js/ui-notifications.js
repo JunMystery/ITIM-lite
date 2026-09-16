@@ -26,7 +26,7 @@ var Notifications = (function () {
     var prefix = "";
     if (type === "success") prefix = "✓ ";
     else if (type === "error") prefix = "✕ ";
-    else if (type === "warning") prefix = "⚠ ";
+    else if (type === "warning") prefix = "[!] ";
 
     toast.innerText = prefix + message;
     container.appendChild(toast);

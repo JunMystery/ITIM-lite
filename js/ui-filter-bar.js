@@ -46,7 +46,7 @@ var UI_FilterBar = (function () {
 
     var html = '<div class="table-toolbar">' +
       '<div class="toolbar-search-wrap">' +
-        '<span class="search-icon">🔍</span>' +
+        '<span class="search-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></span>' +
         '<input type="text" class="toolbar-search-input" id="search-input-' + viewId + '" placeholder="' + ph + '" value="' + curSearch.replace(/"/g, "&quot;") + '" oninput="UI_FilterBar.onInput(\'' + viewId + '\', this.value)" onkeydown="UI_FilterBar.onKeyDown(event, \'' + viewId + '\')" />' +
         '<button type="button" class="toolbar-search-clear" id="search-clear-' + viewId + '" style="' + (curSearch ? 'display:block;' : 'display:none;') + '" onclick="UI_FilterBar.clearSearch(\'' + viewId + '\')">✕</button>' +
       '</div>' +

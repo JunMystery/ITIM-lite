@@ -99,8 +99,25 @@ var UI_ComboBox = (function () {
     var wrap = document.getElementById("combo-wrapper-" + id);
     if (!dd || !wrap) return;
     renderDropdownOptions(id, "");
-    dd.className = "combo-dropdown open";
-    wrap.className = "combo-input-wrapper is-open";
+
+    var isDropup = false;
+    var container = document.getElementById("combo-box-" + id);
+    if (container && container.className && container.className.indexOf("combo-dropup") !== -1) {
+      isDropup = true;
+    } else if (wrap.getBoundingClientRect) {
+      try {
+        var rect = wrap.getBoundingClientRect();
+        var winH = (typeof window !== "undefined" && window.innerHeight) || (document.documentElement && document.documentElement.clientHeight) || 600;
+        var spaceBelow = winH - rect.bottom;
+        var spaceAbove = rect.top;
+        if (spaceBelow < 180 && spaceAbove > spaceBelow) {
+          isDropup = true;
+        }
+      } catch (e) {}
+    }
+
+    dd.className = "combo-dropdown open" + (isDropup ? " dropup" : "");
+    wrap.className = "combo-input-wrapper is-open" + (isDropup ? " is-dropup" : "");
   }
 
   function closeDropdown(id) {
@@ -129,10 +146,8 @@ var UI_ComboBox = (function () {
 
   function onSearchInput(id, query) {
     var dd = document.getElementById("combo-dropdown-" + id);
-    var wrap = document.getElementById("combo-wrapper-" + id);
     if (dd && dd.className.indexOf("open") === -1) {
-      dd.className = "combo-dropdown open";
-      if (wrap) wrap.className = "combo-input-wrapper is-open";
+      openDropdown(id);
     }
     renderDropdownOptions(id, query);
   }

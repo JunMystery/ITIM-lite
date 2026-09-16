@@ -11,11 +11,12 @@ var UI_Assets = (function () {
   var currentPageSize = 10;
 
   function getStatusBadge(status) {
-    if (status === "inuse") return '<span class="badge badge-inuse">In Use</span>';
-    if (status === "available") return '<span class="badge badge-available">Available</span>';
-    if (status === "repair") return '<span class="badge badge-repair">In Repair</span>';
-    if (status === "retired") return '<span class="badge badge-retired">Retired</span>';
-    return '<span class="badge">' + status + '</span>';
+    var label = typeof I18N !== "undefined" ? I18N.t("status_" + status) : status;
+    if (status === "inuse") return '<span class="badge badge-inuse">' + label + '</span>';
+    if (status === "available") return '<span class="badge badge-available">' + label + '</span>';
+    if (status === "repair") return '<span class="badge badge-repair">' + label + '</span>';
+    if (status === "retired") return '<span class="badge badge-retired">' + label + '</span>';
+    return '<span class="badge">' + label + '</span>';
   }
 
   function getSelectedIds() {
@@ -138,7 +139,7 @@ var UI_Assets = (function () {
     currentPage = paged.currentPage;
 
     if (list.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--text-tertiary); padding:30px;">No assets match current criteria.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--text-tertiary); padding:30px;">' + (typeof I18N !== "undefined" ? I18N.t("empty_assets") : "No assets match current criteria.") + '</td></tr>';
       updateBulkBar();
       if (typeof UIPagination !== "undefined") {
         UIPagination.renderBar("assets-pagination-container", paged, "UI_Assets.setPage", "UI_Assets.setPageSize");
@@ -200,6 +201,22 @@ var UI_Assets = (function () {
     initFilterBar();
   }
 
+  var activeTab = "assets";
+  function switchTab(tab) {
+    activeTab = tab || "assets";
+    var tabs = ["assets", "licenses", "consumables"];
+    for (var i = 0; i < tabs.length; i++) {
+      var t = tabs[i];
+      var panel = document.getElementById("tab-panel-" + t);
+      var btn = document.getElementById("tab-btn-" + t);
+      if (panel) panel.style.display = (t === activeTab) ? "block" : "none";
+      if (btn) btn.className = (t === activeTab) ? "btn btn-sm btn-primary" : "btn btn-sm";
+    }
+    if (activeTab === "assets") render();
+    else if (activeTab === "licenses" && typeof UI_Licenses !== "undefined") UI_Licenses.render();
+    else if (activeTab === "consumables" && typeof UI_Consumables !== "undefined") UI_Consumables.render();
+  }
+
   return {
     init: init,
     render: render,
@@ -209,6 +226,8 @@ var UI_Assets = (function () {
     clearSelection: clearSelection,
     getSelectedIds: getSelectedIds,
     triggerBulkAction: triggerBulkAction,
+    switchTab: switchTab,
+    getActiveTab: function () { return activeTab; },
     setPage: setPage,
     setPageSize: setPageSize
   };

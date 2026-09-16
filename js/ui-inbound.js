@@ -6,10 +6,10 @@ var UI_Inbound = (function () {
   var currentFilter = "all";
 
   function getStatusBadge(status) {
-    if (status === "received") return '<span class="badge badge-available">Fully Received</span>';
-    if (status === "partial") return '<span class="badge badge-inuse">Partially Received</span>';
-    if (status === "pending") return '<span class="badge badge-repair">Pending Delivery</span>';
-    return '<span class="badge badge-retired">' + status + '</span>';
+    if (status === "received") return '<span class="badge badge-available">' + (typeof I18N !== "undefined" ? I18N.t("status_received") : "Fully Received") + '</span>';
+    if (status === "partial") return '<span class="badge badge-inuse">' + (typeof I18N !== "undefined" ? I18N.t("status_partial") : "Partially Received") + '</span>';
+    if (status === "pending") return '<span class="badge badge-repair">' + (typeof I18N !== "undefined" ? I18N.t("status_pending") : "Pending Delivery") + '</span>';
+    return '<span class="badge badge-retired">' + (typeof I18N !== "undefined" ? I18N.t("status_" + status) : status) + '</span>';
   }
 
   function initFilterBar() {

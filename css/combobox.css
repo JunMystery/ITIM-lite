@@ -92,6 +92,15 @@
   display: block;
 }
 
+.combo-dropdown.dropup,
+.combo-dropup .combo-dropdown {
+  top: auto;
+  bottom: 100%;
+  margin-top: 0;
+  margin-bottom: 3px;
+  box-shadow: 0 -6px 16px rgba(0, 0, 0, 0.15);
+}
+
 .combo-option {
   padding: 7px 12px;
   font-size: 13px;

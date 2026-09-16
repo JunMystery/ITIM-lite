@@ -181,7 +181,18 @@ function initApp() {
 }
 
 function toggleTheme() {
-  var isDark = document.body.classList.toggle("theme-dark");
+  var body = document.body;
+  var isDark;
+  if (body.classList) {
+    isDark = body.classList.toggle("theme-dark");
+  } else {
+    isDark = body.className.indexOf("theme-dark") === -1;
+    if (isDark) {
+      body.className += " theme-dark";
+    } else {
+      body.className = body.className.replace(/\btheme-dark\b/g, "").trim();
+    }
+  }
   try {
     localStorage.setItem("ITIM_THEME", isDark ? "dark" : "light");
   } catch (e) {}
@@ -190,7 +201,11 @@ function toggleTheme() {
 // Check saved theme
 try {
   if (localStorage.getItem("ITIM_THEME") === "dark") {
-    document.body.className = "theme-dark";
+    if (document.body.classList) {
+      document.body.classList.add("theme-dark");
+    } else {
+      document.body.className += " theme-dark";
+    }
   }
 } catch (e) {}
 
