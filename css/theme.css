@@ -1,0 +1,118 @@
+/* ==========================================================================
+   ITIM-lite - Windows Fluent Design Theme Variables
+   Compatible with IE11 / MSHTA Standards Mode
+   ========================================================================== */
+
+:root {
+  /* Color Palette - Windows 11 Fluent Blue */
+  --color-primary: #0067b8;
+  --color-primary-hover: #005a9e;
+  --color-primary-active: #004d87;
+  --color-primary-light: #e0f0ff;
+  --color-accent: #0078d4;
+
+  /* Neutrals & Surfaces (Light Theme Default) */
+  --bg-app: #f3f3f3;
+  --bg-sidebar: #f9f9f9;
+  --bg-surface: #ffffff;
+  --bg-surface-secondary: #fbfbfb;
+  --bg-surface-tertiary: #f0f0f0;
+  --bg-input: #ffffff;
+  --bg-hover: rgba(0, 0, 0, 0.04);
+  --bg-active: rgba(0, 0, 0, 0.08);
+
+  /* Text Colors */
+  --text-primary: #1a1a1a;
+  --text-secondary: #5c5c5c;
+  --text-tertiary: #8a8a8a;
+  --text-disabled: #b0b0b0;
+  --text-on-primary: #ffffff;
+
+  /* Borders & Dividers */
+  --border-subtle: #e5e5e5;
+  --border-strong: #d1d1d1;
+  --border-focus: #0067b8;
+
+  /* Status Colors */
+  --status-available: #107c41;
+  --status-available-bg: #dff6dd;
+  --status-inuse: #0067b8;
+  --status-inuse-bg: #deecf9;
+  --status-repair: #c19c00;
+  --status-repair-bg: #fff4ce;
+  --status-retired: #a80000;
+  --status-retired-bg: #fde7e9;
+  --status-warning: #d83b01;
+  --status-warning-bg: #fed9cc;
+
+  /* Shadows (Fluent Elevation) */
+  --shadow-card: 0 2px 4px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-flyout: 0 8px 16px rgba(0, 0, 0, 0.12), 0 2px 4px rgba(0, 0, 0, 0.08);
+  --shadow-modal: 0 16px 32px rgba(0, 0, 0, 0.20), 0 4px 8px rgba(0, 0, 0, 0.12);
+
+  /* Radius & Sizing */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-pill: 9999px;
+  --font-family: 'Segoe UI Variable Text', 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+  --font-mono: 'Consolas', 'Cascadia Code', monospace;
+}
+
+/* Dark Theme overrides */
+body.theme-dark {
+  --bg-app: #202020;
+  --bg-sidebar: #282828;
+  --bg-surface: #2d2d2d;
+  --bg-surface-secondary: #333333;
+  --bg-surface-tertiary: #3a3a3a;
+  --bg-input: #383838;
+  --bg-hover: rgba(255, 255, 255, 0.06);
+  --bg-active: rgba(255, 255, 255, 0.10);
+
+  --text-primary: #f0f0f0;
+  --text-secondary: #b0b0b0;
+  --text-tertiary: #808080;
+  --text-disabled: #555555;
+
+  --border-subtle: #3d3d3d;
+  --border-strong: #4f4f4f;
+
+  --status-available-bg: #1e3a29;
+  --status-inuse-bg: #1c3552;
+  --status-repair-bg: #3f3612;
+  --status-retired-bg: #44181b;
+
+  --shadow-card: 0 2px 6px rgba(0, 0, 0, 0.4);
+  --shadow-flyout: 0 8px 20px rgba(0, 0, 0, 0.6);
+  --shadow-modal: 0 16px 36px rgba(0, 0, 0, 0.8);
+}
+
+/* Typography Base */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-family);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  background-color: var(--bg-app);
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  overflow: hidden;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  margin: 0 0 8px 0;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+h1 { font-size: 20px; }
+h2 { font-size: 16px; }
+h3 { font-size: 14px; }
+
+code, pre {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}

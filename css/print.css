@@ -1,0 +1,119 @@
+/* ==========================================================================
+   ITIM-lite - Print Stylesheet
+   Optimized for Asset Tag Labels and Handover Sign-off Receipts
+   ========================================================================== */
+
+@media print {
+  body {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    overflow: visible !important;
+  }
+
+  /* Hide app navigation & interactive UI */
+  .app-header,
+  .app-sidebar,
+  .btn,
+  .filter-bar,
+  .search-box,
+  .toast-container,
+  .modal-footer {
+    display: none !important;
+  }
+
+  .app-body, .app-content {
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    height: auto !important;
+    display: block !important;
+  }
+
+  /* Printable Asset Tag Layout */
+  .printable-asset-tag {
+    display: inline-flex !important;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border: 2px solid #000000;
+    border-radius: 4px;
+    margin: 6px;
+    page-break-inside: avoid;
+    width: 280px;
+    font-family: Arial, sans-serif;
+  }
+
+  .tag-qr-code {
+    width: 70px;
+    height: 70px;
+    flex-shrink: 0;
+  }
+
+  .tag-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .tag-org-name {
+    font-size: 10px;
+    font-weight: bold;
+    text-transform: uppercase;
+    color: #333333;
+  }
+
+  .tag-asset-id {
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+  }
+
+  .tag-asset-name {
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .tag-serial {
+    font-size: 10px;
+    color: #444444;
+  }
+
+  /* Printable Handover Receipt */
+  .printable-handover-sheet {
+    display: block !important;
+    padding: 24px;
+    max-width: 800px;
+    margin: 0 auto;
+    font-family: Arial, sans-serif;
+  }
+
+  .handover-header {
+    border-bottom: 2px solid #000000;
+    padding-bottom: 12px;
+    margin-bottom: 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+
+  .handover-title {
+    font-size: 20px;
+    font-weight: bold;
+    margin: 0;
+  }
+
+  .handover-signatures {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 60px;
+    page-break-inside: avoid;
+  }
+
+  .sig-block {
+    width: 45%;
+    border-top: 1px solid #000000;
+    padding-top: 8px;
+    font-size: 12px;
+  }
+}

@@ -1,0 +1,15 @@
+# Agent Guidance local metadata & rollback snapshots
+.agent-context/
+
+# Local database & backups
+data/
+backups/
+*.bak
+
+# System & OS artifacts
+.DS_Store
+Thumbs.db
+*.log
+.vscode/
+.idea/
+
