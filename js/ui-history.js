@@ -13,10 +13,10 @@ var UI_History = (function () {
     var div = document.createElement("div");
     div.id = "transaction-modal"; div.className = "modal-backdrop";
     div.onclick = function (e) { e = e || window.event; if ((e.target || e.srcElement) === div) closeModal(); };
-    div.innerHTML = '<div class="modal" style="width:620px;">' +
+    div.innerHTML = '<div class="modal" style="width:620px; max-width:92vw;">' +
       '<div class="modal-header"><h3 id="txn-modal-title">Create Multi-Item Transaction</h3><button class="btn btn-sm" onclick="UI_History.closeModal()">✕</button></div>' +
       '<div class="modal-body">' +
-        '<div style="background:var(--bg-surface-secondary); padding:10px; border-radius:var(--radius-md); margin-bottom:12px;">' +
+        '<div style="background:#f5f5f5; padding:10px; border-radius:4px; margin-bottom:12px;">' +
           '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;"><span style="font-size:12px; font-weight:600;">Selected Assets (<span id="txn-selected-count">0</span>):</span></div>' +
           '<div id="txn-selected-chips" style="display:flex; flex-wrap:wrap; gap:6px; min-height:28px; max-height:80px; overflow-y:auto; margin-bottom:8px;"></div>' +
           (typeof UI_ComboBox !== "undefined" ? UI_ComboBox.renderHtml("txn-asset-picker", [], "", "searchable-combo-sm", 'onchange="UI_History.addAssetFromPicker(this.value)"') : '<select id="txn-asset-picker" class="form-select combo-box" onchange="UI_History.addAssetFromPicker(this.value)" style="font-size:12px;"></select>') +

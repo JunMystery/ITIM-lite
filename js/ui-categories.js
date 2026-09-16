@@ -10,6 +10,16 @@ var UI_Categories = (function () {
     if (m && m.parentNode) m.parentNode.removeChild(m);
   }
 
+  function closeEditModal() {
+    var sub = document.getElementById("cat-edit-submodal");
+    if (sub && sub.parentNode) sub.parentNode.removeChild(sub);
+  }
+
+  function closeFieldsModal() {
+    var sub = document.getElementById("cat-fields-submodal");
+    if (sub && sub.parentNode) sub.parentNode.removeChild(sub);
+  }
+
   function openModal() {
     closeModal();
     var host = document.getElementById("modal-host") || document.body;
@@ -21,23 +31,23 @@ var UI_Categories = (function () {
       var count = c.itemCount || 0;
       var fCount = (c.customFields || []).length;
       var delBtn = count > 0
-        ? '<button class="btn btn-sm btn-icon" disabled title="Cannot delete category with ' + count + ' item(s)" style="opacity:0.4; cursor:not-allowed;">🗑️</button>'
-        : '<button class="btn btn-sm btn-icon btn-danger" onclick="UI_Categories.deleteCategory(\'' + c.id + '\')" title="Delete Category">🗑️</button>';
+        ? '<button class="btn btn-sm btn-icon" disabled title="Cannot delete category with ' + count + ' item(s)" style="opacity:0.4; cursor:not-allowed;">✕</button>'
+        : '<button class="btn btn-sm btn-icon btn-danger" onclick="UI_Categories.deleteCategory(\'' + c.id + '\')" title="Delete Category">✕</button>';
 
       rowsHtml.push('<tr>' +
         '<td style="font-weight:600;">' + c.name + '</td>' +
         '<td><span class="badge" style="background:#e0e7ff; color:#3730a3; text-transform:capitalize;">' + c.type + '</span></td>' +
         '<td><span class="badge ' + (count > 0 ? 'badge-inuse' : 'badge-available') + '">' + count + ' items</span></td>' +
-        '<td><button class="btn btn-sm" onclick="UI_Categories.openFieldsModal(\'' + c.id + '\')">⚙️ ' + fCount + ' Fields</button></td>' +
+        '<td><button class="btn btn-sm" onclick="UI_Categories.openFieldsModal(\'' + c.id + '\')">' + fCount + ' Fields</button></td>' +
         '<td style="text-align:right; white-space:nowrap;">' +
-          '<button class="btn btn-sm btn-icon" onclick="UI_Categories.openEditModal(\'' + c.id + '\')" title="Edit" style="margin-right:4px;">✏️</button>' +
+          '<button class="btn btn-sm" onclick="UI_Categories.openEditModal(\'' + c.id + '\')" title="Edit" style="margin-right:4px;">Edit</button>' +
           delBtn +
         '</td>' +
       '</tr>');
     }
 
     if (rowsHtml.length === 0) {
-      rowsHtml.push('<tr><td colspan="5" style="text-align:center; padding:16px; color:var(--text-tertiary);">No categories defined.</td></tr>');
+      rowsHtml.push('<tr><td colspan="5" style="text-align:center; padding:16px; color:#888888;">No categories defined.</td></tr>');
     }
 
     var div = document.createElement("div");
@@ -50,12 +60,12 @@ var UI_Categories = (function () {
 
     div.innerHTML = '<div class="modal" style="width:680px; max-width:92vw;">' +
       '<div class="modal-header">' +
-        '<h3>📁 Manage Categories &amp; Custom Fields</h3>' +
+        '<h3>Manage Categories &amp; Custom Fields</h3>' +
         '<button type="button" class="btn btn-sm" onclick="UI_Categories.closeModal()">✕</button>' +
       '</div>' +
       '<div class="modal-body">' +
         '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">' +
-          '<span style="font-size:12px; color:var(--text-secondary);">Categories group items and define unique custom fields schema.</span>' +
+          '<span style="font-size:12px; color:#666666;">Categories group items and define unique custom fields schema.</span>' +
           '<button class="btn btn-primary btn-sm" onclick="UI_Categories.openEditModal()">+ New Category</button>' +
         '</div>' +
         '<div class="data-table-container" style="max-height:360px; overflow-y:auto;">' +
@@ -94,14 +104,14 @@ var UI_Categories = (function () {
 
     div.innerHTML = '<div class="modal" style="width:440px; max-width:90vw;">' +
       '<div class="modal-header"><h3>' + (isEdit ? "Edit Category" : "New Category") + '</h3>' +
-        '<button type="button" class="btn btn-sm" onclick="var p=this.closest(\'.modal-backdrop\'); p.parentNode.removeChild(p);">✕</button></div>' +
+        '<button type="button" class="btn btn-sm" onclick="UI_Categories.closeEditModal()">✕</button></div>' +
       '<div class="modal-body">' +
         '<div class="form-group"><label class="form-label">Category Name *</label><input type="text" id="cat-edit-name" class="form-input" value="' + (cat.name || "") + '" placeholder="e.g. Laptop, Server, Monitor" /></div>' +
         '<div class="form-group"><label class="form-label">Classification Type *</label>' + typeComboHtml + '</div>' +
         '<div class="form-group"><label class="form-label">Description</label><input type="text" id="cat-edit-desc" class="form-input" value="' + (cat.description || "") + '" /></div>' +
       '</div>' +
       '<div class="modal-footer">' +
-        '<button type="button" class="btn" onclick="var p=this.closest(\'.modal-backdrop\'); p.parentNode.removeChild(p);">Cancel</button>' +
+        '<button type="button" class="btn" onclick="UI_Categories.closeEditModal()">Cancel</button>' +
         '<button type="button" class="btn btn-primary" onclick="UI_Categories.saveCategory(\'' + (catId || "") + '\')">Save</button>' +
       '</div>' +
     '</div>';
@@ -178,11 +188,11 @@ var UI_Categories = (function () {
         '<td style="font-weight:600;">' + f.label + '</td>' +
         '<td><span class="badge badge-repair" style="text-transform:uppercase; font-size:10px;">' + f.type + optStr + '</span></td>' +
         '<td>' + (f.required ? 'Yes' : 'No') + '</td>' +
-        '<td style="text-align:right;"><button class="btn btn-sm btn-icon btn-danger" onclick="UI_Categories.deleteField(\'' + cat.id + '\', \'' + f.id + '\')">🗑️</button></td>' +
+        '<td style="text-align:right;"><button class="btn btn-sm btn-icon btn-danger" onclick="UI_Categories.deleteField(\'' + cat.id + '\', \'' + f.id + '\')">✕</button></td>' +
       '</tr>');
     }
     if (rows.length === 0) {
-      rows.push('<tr><td colspan="4" style="text-align:center; padding:12px; color:var(--text-tertiary);">No custom fields defined.</td></tr>');
+      rows.push('<tr><td colspan="4" style="text-align:center; padding:12px; color:#888888;">No custom fields defined.</td></tr>');
     }
 
     var fieldTypeCombo = UI_ComboBox.renderHtml("new-field-type", [
@@ -193,23 +203,23 @@ var UI_Categories = (function () {
     ], "text", "searchable-combo-sm");
 
     container.innerHTML = '<div class="modal" style="width:580px; max-width:92vw;">' +
-      '<div class="modal-header"><h3>⚙️ Custom Fields: ' + cat.name + '</h3>' +
-        '<button type="button" class="btn btn-sm" onclick="var p=this.closest(\'.modal-backdrop\'); p.parentNode.removeChild(p);">✕</button></div>' +
+      '<div class="modal-header"><h3>Custom Fields: ' + cat.name + '</h3>' +
+        '<button type="button" class="btn btn-sm" onclick="UI_Categories.closeFieldsModal()">✕</button></div>' +
       '<div class="modal-body">' +
         '<table class="data-table" style="margin-bottom:14px;"><thead><tr><th>Label</th><th>Type</th><th>Required</th><th style="text-align:right;">Action</th></tr></thead><tbody>' + rows.join("") + '</tbody></table>' +
-        '<div style="background:var(--bg-hover,#f9fafb); padding:10px; border-radius:4px; border:1px solid var(--border-color,#e5e7eb);">' +
+        '<div style="background:#f9fafb; padding:10px; border-radius:4px; border:1px solid #e5e7eb;">' +
           '<div style="font-weight:600; font-size:12px; margin-bottom:8px;">+ Add Custom Field</div>' +
-          '<div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom:6px;">' +
-            '<input type="text" id="new-field-label" class="form-input" placeholder="Field Label (e.g. RAM GB, CPU)" />' +
-            fieldTypeCombo +
+          '<div class="form-row" style="margin-bottom:6px;">' +
+            '<div style="flex:1;"><input type="text" id="new-field-label" class="form-input" placeholder="Field Label (e.g. RAM GB, CPU)" /></div>' +
+            '<div style="flex:1;">' + fieldTypeCombo + '</div>' +
           '</div>' +
-          '<div style="display:grid; grid-template-columns: 1fr auto; gap:8px; align-items:center;">' +
-            '<input type="text" id="new-field-options" class="form-input" placeholder="Options for select (comma-separated)" />' +
-            '<button type="button" class="btn btn-sm btn-primary" onclick="UI_Categories.addField(\'' + cat.id + '\')">Add Field</button>' +
+          '<div class="form-row" style="align-items:center;">' +
+            '<div style="flex:1;"><input type="text" id="new-field-options" class="form-input" placeholder="Options for select (comma-separated)" /></div>' +
+            '<div style="margin-left:8px;"><button type="button" class="btn btn-sm btn-primary" onclick="UI_Categories.addField(\'' + cat.id + '\')">Add Field</button></div>' +
           '</div>' +
         '</div>' +
       '</div>' +
-      '<div class="modal-footer"><button type="button" class="btn" onclick="var p=this.closest(\'.modal-backdrop\'); p.parentNode.removeChild(p); UI_Categories.openModal();">Back</button></div>' +
+      '<div class="modal-footer"><button type="button" class="btn" onclick="UI_Categories.closeFieldsModal(); UI_Categories.openModal();">Back</button></div>' +
     '</div>';
   }
 
@@ -263,6 +273,8 @@ var UI_Categories = (function () {
     saveCategory: saveCategory,
     deleteCategory: deleteCategory,
     openFieldsModal: openFieldsModal,
+    closeEditModal: closeEditModal,
+    closeFieldsModal: closeFieldsModal,
     addField: addField,
     deleteField: deleteField
   };

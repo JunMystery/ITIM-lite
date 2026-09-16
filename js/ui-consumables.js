@@ -18,7 +18,7 @@ var UI_Consumables = (function () {
         '<div class="form-group"><label class="form-label">Item Name *:</label><input type="text" id="con-input-name" class="form-input" /></div>' +
         '<div class="form-group"><label class="form-label">Category:</label>' + (typeof UI_ComboBox !== "undefined" ? UI_ComboBox.renderHtml("con-input-category", [], "") : '<select id="con-input-category" class="form-select"></select>') + '</div>' +
         '<div class="form-row">' +
-          '<div class="form-group"><label class="form-label">Quantity in Stock (PO Inbound only):</label><input type="number" id="con-input-qty" class="form-input" min="0" readonly disabled style="background:var(--bg-surface-secondary); cursor:not-allowed;" title="Stock quantity cannot be edited directly. Intake via PO Inbound." /></div>' +
+          '<div class="form-group"><label class="form-label">Quantity in Stock (PO Inbound only):</label><input type="number" id="con-input-qty" class="form-input" min="0" readonly disabled style="background:#f5f5f5; cursor:not-allowed;" title="Stock quantity cannot be edited directly. Intake via PO Inbound." /></div>' +
           '<div class="form-group"><label class="form-label">Low-Stock Alert:</label><input type="number" id="con-input-min-qty" class="form-input" min="0" /></div>' +
         '</div>' +
         '<div class="form-group"><label class="form-label">Location / Bin:</label><input type="text" id="con-input-location" class="form-input" /></div>' +

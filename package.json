@@ -1,0 +1,22 @@
+{
+  "name": "itim-lite",
+  "version": "1.1.0",
+  "description": "IT Inventory Management for MSHTA and Modern Browsers",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build && node scripts/package-hta.js",
+    "preview": "vite preview",
+    "test": "node tests/test-runner.js"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@vitejs/plugin-legacy": "^5.4.3",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "postcss-custom-properties": "^13.3.12",
+    "tailwindcss": "^3.4.17",
+    "terser": "^5.37.0",
+    "typescript": "^5.7.2",
+    "vite": "^5.4.11"
+  }
+}

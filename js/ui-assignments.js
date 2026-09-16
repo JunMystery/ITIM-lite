@@ -133,7 +133,8 @@ var UI_Assignments = (function () {
     document.getElementById("checkout-input-expected").value = "";
     document.getElementById("checkout-input-condition").value = "Good / Functional";
     document.getElementById("checkout-input-notes").value = "";
-    modal.className = "modal-backdrop open";
+    var modal = document.getElementById("checkout-modal");
+    if (modal) modal.className = "modal-backdrop open";
   }
 
   function closeCheckoutModal() {

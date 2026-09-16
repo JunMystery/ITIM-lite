@@ -75,7 +75,7 @@ var UI_Catalog = (function () {
       return;
     }
 
-    var html = ['<div style="background:var(--bg-hover,#f9fafb); padding:8px 10px; border-radius:4px; border:1px solid var(--border-color,#e5e7eb); margin-bottom:12px;"><div style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--text-secondary); margin-bottom:6px;">Category Custom Specifications</div><div class="form-row" style="flex-wrap:wrap;">'];
+    var html = ['<div style="background:#f9fafb; padding:8px 10px; border-radius:4px; border:1px solid #e5e7eb; margin-bottom:12px;"><div style="font-size:11px; font-weight:700; text-transform:uppercase; color:#666666; margin-bottom:6px;">Category Custom Specifications</div><div class="form-row" style="flex-wrap:wrap;">'];
     for (var i = 0; i < fields.length; i++) {
       var f = fields[i];
       var v = (values[f.id] !== undefined) ? values[f.id] : "";

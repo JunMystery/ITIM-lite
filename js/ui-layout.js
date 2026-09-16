@@ -13,7 +13,7 @@ var UI_Layout = (function () {
     // 1. Linux / Browser Debug Banner
     if (!isHta) {
       html.push('<div class="linux-debug-banner">');
-      html.push('  <span>🐧 <strong>Linux Debug Mode</strong>: Emulating Windows HTA via LocalStorage | Press <strong>F12</strong> to open DevTools</span>');
+      html.push('  <span><strong>Linux Debug Mode</strong>: Emulating Windows HTA via LocalStorage | Press <strong>F12</strong> to open DevTools</span>');
       html.push('  <span>Target: <a href="ITIM.hta" style="color:#70c4ff; text-decoration:underline;" target="_blank">ITIM.hta</a> (Production Windows File)</span>');
       html.push('</div>');
     }
@@ -36,18 +36,18 @@ var UI_Layout = (function () {
     html.push('<div class="app-body">');
     html.push('  <aside class="app-sidebar">');
     html.push('    <ul class="nav-menu">');
-    html.push('      <li><a class="nav-item active" data-view="dashboard"><span class="nav-icon">📊</span> <span data-i18n="nav_dashboard">Dashboard</span></a></li>');
-    html.push('      <li><a class="nav-item" data-view="assets"><span class="nav-icon">💻</span> <span data-i18n="nav_assets">Assets</span> <span id="nav-badge-assets" class="nav-count-badge">0</span></a></li>');
-    html.push('      <li><a class="nav-item" data-view="inbound"><span class="nav-icon">📥</span> <span data-i18n="nav_inbound">Inbound &amp; PO</span> <span id="nav-badge-inbound" class="nav-count-badge">0</span></a></li>');
-    html.push('      <li><a class="nav-item" data-view="catalog"><span class="nav-icon">🏷️</span> <span data-i18n="nav_catalog">Master Catalog</span> <span id="nav-badge-catalog" class="nav-count-badge">0</span></a></li>');
-    html.push('      <li><a class="nav-item" data-view="licenses"><span class="nav-icon">🔑</span> <span data-i18n="nav_licenses">Software</span> <span id="nav-badge-licenses" class="nav-count-badge">0</span></a></li>');
-    html.push('      <li><a class="nav-item" data-view="consumables"><span class="nav-icon">📦</span> <span data-i18n="nav_consumables">Stock</span> <span id="nav-badge-consumables" class="nav-count-badge">0</span></a></li>');
-    html.push('      <li><a class="nav-item" data-view="assignments"><span class="nav-icon">📋</span> <span data-i18n="nav_assignments">Handover</span></a></li>');
-    html.push('      <li><a class="nav-item" data-view="history"><span class="nav-icon">🔁</span> <span data-i18n="nav_history">Transactions</span> <span id="nav-badge-history" class="nav-count-badge">0</span></a></li>');
-    html.push('      <li><a class="nav-item" data-view="audit"><span class="nav-icon">📜</span> <span data-i18n="nav_audit">Audit Log</span></a></li>');
+    html.push('      <li><a class="nav-item active" data-view="dashboard"><span data-i18n="nav_dashboard">Dashboard</span></a></li>');
+    html.push('      <li><a class="nav-item" data-view="assets"><span data-i18n="nav_assets">Assets</span> <span id="nav-badge-assets" class="nav-count-badge">0</span></a></li>');
+    html.push('      <li><a class="nav-item" data-view="inbound"><span data-i18n="nav_inbound">Inbound &amp; PO</span> <span id="nav-badge-inbound" class="nav-count-badge">0</span></a></li>');
+    html.push('      <li><a class="nav-item" data-view="catalog"><span data-i18n="nav_catalog">Master Catalog</span> <span id="nav-badge-catalog" class="nav-count-badge">0</span></a></li>');
+    html.push('      <li><a class="nav-item" data-view="licenses"><span data-i18n="nav_licenses">Software</span> <span id="nav-badge-licenses" class="nav-count-badge">0</span></a></li>');
+    html.push('      <li><a class="nav-item" data-view="consumables"><span data-i18n="nav_consumables">Stock</span> <span id="nav-badge-consumables" class="nav-count-badge">0</span></a></li>');
+    html.push('      <li><a class="nav-item" data-view="assignments"><span data-i18n="nav_assignments">Handover</span></a></li>');
+    html.push('      <li><a class="nav-item" data-view="history"><span data-i18n="nav_history">Transactions</span> <span id="nav-badge-history" class="nav-count-badge">0</span></a></li>');
+    html.push('      <li><a class="nav-item" data-view="audit"><span data-i18n="nav_audit">Audit Log</span></a></li>');
     html.push('    </ul>');
     html.push('    <div class="sidebar-footer">');
-    html.push('      <a class="nav-item" data-view="settings"><span class="nav-icon">⚙️</span> <span data-i18n="nav_settings">Storage &amp; Backup</span></a>');
+    html.push('      <a class="nav-item" data-view="settings"><span data-i18n="nav_settings">Storage &amp; Backup</span></a>');
     html.push('      <div class="sidebar-controls" style="display:flex; align-items:center; gap:6px; padding:6px 4px 2px 4px;">');
     html.push('        <div style="flex:1;">' + (typeof UI_ComboBox !== "undefined" ? UI_ComboBox.renderHtml("lang-switcher", [{value:"en",label:"EN"},{value:"vi",label:"VI"},{value:"jp",label:"JP"}], "en", "searchable-combo-sm", 'onchange="I18N.setLang(this.value)"') : '<select id="lang-switcher" class="form-select combo-box combo-box-sm" style="flex:1; height:28px;" onchange="I18N.setLang(this.value)"><option value="en">EN</option><option value="vi">VI</option><option value="jp">JP</option></select>') + '</div>');
     html.push('        <button class="btn btn-icon btn-sm" onclick="toggleTheme()" title="Toggle Dark Mode" style="width:28px; height:28px; padding:0; display:flex; align-items:center; justify-content:center;">🌓</button>');
@@ -199,7 +199,7 @@ var UI_Layout = (function () {
     html.push('      </div>');
     html.push('    </section>');
     html.push('    <section id="view-catalog" class="view-container">');
-    html.push('      <div class="view-header"><div class="view-title-group"><h1 data-i18n="catalog_title">Master Item Catalog</h1><span class="view-subtitle">Pre-registered hardware, software, and consumable templates</span></div><div class="view-actions" style="display:flex; gap:8px;"><button class="btn btn-secondary" onclick="UI_Categories.openModal()">📁 Manage Categories</button><button class="btn btn-primary" onclick="UI_Catalog.openModal()">+ Register Item</button></div></div>');
+    html.push('      <div class="view-header"><div class="view-title-group"><h1 data-i18n="catalog_title">Master Item Catalog</h1><span class="view-subtitle">Pre-registered hardware, software, and consumable templates</span></div><div class="view-actions" style="display:flex; gap:8px;"><button class="btn btn-secondary" onclick="UI_Categories.openModal()">Manage Categories</button><button class="btn btn-primary" onclick="UI_Catalog.openModal()">+ Register Item</button></div></div>');
     html.push('      <div id="catalog-filter-bar"></div>');
     html.push('      <div class="data-table-container"><table class="data-table" id="catalog-table"><thead><tr><th style="width:36px;"><input type="checkbox" id="catalog-select-all" onchange="BulkActions.toggleAll(\'catalog\', this.checked)"></th><th>SKU / Barcode</th><th>Name</th><th>Type</th><th>Category</th><th>Model / Specs</th><th style="text-align:right;">Actions</th></tr></thead><tbody id="catalog-tbody"></tbody></table></div>');
     html.push('    </section>');

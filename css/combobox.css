@@ -17,9 +17,9 @@
   position: relative;
   display: flex;
   align-items: center;
-  background: var(--bg-input, #ffffff);
-  border: 1px solid var(--border-color, #d1d5db);
-  border-radius: var(--radius-sm, 4px);
+  background: #ffffff;
+  border: 1px solid #d1d1d1;
+  border-radius: 4px;
   padding: 0 6px 0 10px;
   min-height: 34px;
   box-sizing: border-box;
@@ -33,7 +33,7 @@
 
 .combo-input-wrapper:focus-within,
 .combo-input-wrapper.is-open {
-  border-color: var(--color-primary, #0078d4);
+  border-color: #0078d4;
   box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.2);
 }
 
@@ -45,7 +45,7 @@
   padding: 6px 0;
   font-size: 13px;
   font-family: inherit;
-  color: var(--text-primary, #111827);
+  color: #1a1a1a;
   box-sizing: border-box;
   width: 100%;
 }
@@ -59,7 +59,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-tertiary, #6b7280);
+  color: #8a8a8a;
   font-size: 10px;
   padding: 4px;
   cursor: pointer;
@@ -77,9 +77,9 @@
   left: 0;
   right: 0;
   margin-top: 3px;
-  background: var(--bg-surface, #ffffff);
-  border: 1px solid var(--border-color, #e5e7eb);
-  border-radius: var(--radius-sm, 4px);
+  background: #ffffff;
+  border: 1px solid #e5e5e5;
+  border-radius: 4px;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
   max-height: 220px;
   overflow-y: auto;
@@ -95,7 +95,7 @@
 .combo-option {
   padding: 7px 12px;
   font-size: 13px;
-  color: var(--text-primary, #1f2937);
+  color: #1a1a1a;
   cursor: pointer;
   transition: background-color 0.1s ease;
   white-space: nowrap;
@@ -110,19 +110,19 @@
 
 .combo-option:hover,
 .combo-option.highlighted {
-  background-color: var(--bg-hover, #f3f4f6);
+  background-color: #f3f3f3;
 }
 
 .combo-option.selected {
   background-color: rgba(0, 120, 212, 0.08);
-  color: var(--color-primary, #0078d4);
+  color: #0078d4;
   font-weight: 600;
 }
 
 .combo-no-match {
   padding: 10px 12px;
   font-size: 12px;
-  color: var(--text-tertiary, #9ca3af);
+  color: #8a8a8a;
   text-align: center;
   font-style: italic;
 }

@@ -285,6 +285,27 @@ var licActions = UI_ActionsMenu.getActions("license", "LIC-001");
 assert(assetActions.length >= 2 && poActions.length >= 2 && licActions.length >= 2, "UI_ActionsMenu returns actions for tables");
 assert(typeof assetActions[0].run === "function" && assetActions[0].label && assetActions[0].icon, "Action objects valid");
 
+// ==========================================
+// 15. IE11 Compatibility & Modal Layout Tests
+// ==========================================
+console.log("\n=== 15. IE11 Compatibility & Modal Layout Tests ===");
+var fs = require("fs"), path = require("path"), jsDir = path.join(__dirname, "../js");
+var codeAsg = fs.readFileSync(path.join(jsDir, "ui-assignments.js"), "utf8");
+assert(codeAsg.indexOf('var modal = document.getElementById("checkout-modal");') !== -1, "UI_Assignments.openCheckoutModal declares modal element");
+var codeDet = fs.readFileSync(path.join(jsDir, "ui-detail.js"), "utf8");
+assert(codeDet.indexOf("closeModal();") === -1 && codeDet.indexOf("closeModal: close") !== -1, "UI_Detail defines closeModal alias and avoids undefined closeModal call");
+var cssModals = fs.readFileSync(path.join(__dirname, "../css/modals.css"), "utf8");
+assert(cssModals.indexOf("vertical-align: middle;") !== -1 && cssModals.indexOf("max-height: 65vh;") !== -1, "css/modals.css uses vertical-align middle and max-height 65vh on modal");
+var noBadCalls = ["ui-inbound.js", "ui-categories.js", "ui-detail.js", "ui-catalog.js", "ui-assignments.js"].every(function (f) {
+  var c = fs.readFileSync(path.join(jsDir, f), "utf8");
+  return c.indexOf(".closest(") === -1 && c.indexOf(".remove()") === -1;
+});
+assert(noBadCalls, "No unsupported .closest() or .remove() calls in active UI scripts");
+var allUnder300 = fs.readdirSync(jsDir).filter(function (f) { return f.endsWith(".js"); }).every(function (f) {
+  return fs.readFileSync(path.join(jsDir, f), "utf8").split("\n").length < 300;
+});
+assert(allUnder300, "All source JS files remain strictly < 300 LOC");
+
 console.log("\n==========================================");
 console.log("TEST RESULTS: " + passed + " passed, " + failed + " failed.");
 console.log("==========================================\n");

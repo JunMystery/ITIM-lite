@@ -9,10 +9,10 @@ var UI_Detail = (function () {
     var div = document.createElement("div");
     div.id = "transaction-detail-modal";
     div.className = "modal-backdrop";
-    div.onclick = function (e) { e = e || window.event; if ((e.target || e.srcElement) === div) closeModal(); };
-    div.innerHTML = '<div class="modal" style="width:680px; max-height:90vh; display:flex; flex-direction:column;">' +
+    div.onclick = function (e) { e = e || window.event; if ((e.target || e.srcElement) === div) close(); };
+    div.innerHTML = '<div class="modal" style="width:680px; max-width:92vw;">' +
       '<div class="modal-header"><h3 id="txn-detail-header-title">Transaction Details</h3><button class="btn btn-sm" onclick="UI_Detail.close()">✕</button></div>' +
-      '<div id="txn-detail-body" class="modal-body" style="overflow-y:auto; flex:1;"></div>' +
+      '<div id="txn-detail-body" class="modal-body" style="max-height:65vh; overflow-y:auto;"></div>' +
       '<div class="modal-footer">' +
         '<button class="btn" onclick="UI_Detail.close()">Close</button>' +
         '<button id="txn-detail-print-btn" class="btn btn-primary">Print Receipt</button>' +
@@ -35,7 +35,7 @@ var UI_Detail = (function () {
       var it = txn.items[i];
       rows.push("<tr>" +
         "<td>" + (i + 1) + "</td>" +
-        '<td style="font-family:var(--font-mono); font-weight:600;">' + it.assetId + "</td>" +
+        '<td style="font-family:Consolas, monospace; font-weight:600;">' + it.assetId + "</td>" +
         "<td>" + it.name + "</td>" +
         "<td>" + (it.serial || "-") + "</td>" +
         "<td>" + (it.category || "-") + "</td>" +
@@ -43,15 +43,11 @@ var UI_Detail = (function () {
       "</tr>");
     }
 
-    body.innerHTML = '<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; background:var(--bg-surface-secondary); padding:12px; border-radius:var(--radius-md); font-size:12px;">' +
-      '<div><strong>Transaction ID:</strong> <span style="font-family:var(--font-mono); color:var(--color-primary); font-weight:bold;">' + txn.id + '</span></div>' +
-      '<div><strong>Type:</strong> <span class="badge badge-inuse">' + txn.type + '</span></div>' +
-      '<div><strong>Timestamp:</strong> ' + txn.timestamp + '</div>' +
-      '<div><strong>IT Officer:</strong> ' + (txn.officer || "IT Admin") + '</div>' +
-      '<div><strong>Recipient / Party:</strong> ' + (txn.employeeName || "Stock / Internal") + '</div>' +
-      '<div><strong>Department:</strong> ' + (txn.department || "N/A") + '</div>' +
-      '<div><strong>Expected Return:</strong> ' + (txn.expectedReturnDate || "Indefinite") + '</div>' +
-      '<div><strong>Item Count:</strong> ' + txn.itemCount + '</div>' +
+    body.innerHTML = '<div style="margin-bottom:14px; background:#f5f5f5; padding:12px; border-radius:4px; font-size:12px;">' +
+      '<div class="form-row" style="margin-bottom:6px;"><div style="flex:1;"><strong>Transaction ID:</strong> <span style="font-family:Consolas, monospace; color:#0067b8; font-weight:bold;">' + txn.id + '</span></div><div style="flex:1;"><strong>Type:</strong> <span class="badge badge-inuse">' + txn.type + '</span></div></div>' +
+      '<div class="form-row" style="margin-bottom:6px;"><div style="flex:1;"><strong>Timestamp:</strong> ' + txn.timestamp + '</div><div style="flex:1;"><strong>IT Officer:</strong> ' + (txn.officer || "IT Admin") + '</div></div>' +
+      '<div class="form-row" style="margin-bottom:6px;"><div style="flex:1;"><strong>Recipient / Party:</strong> ' + (txn.employeeName || "Stock / Internal") + '</div><div style="flex:1;"><strong>Department:</strong> ' + (txn.department || "N/A") + '</div></div>' +
+      '<div class="form-row"><div style="flex:1;"><strong>Expected Return:</strong> ' + (txn.expectedReturnDate || "Indefinite") + '</div><div style="flex:1;"><strong>Item Count:</strong> ' + txn.itemCount + '</div></div>' +
     '</div>' +
     (txn.notes ? '<div style="margin-bottom:12px; font-size:12px;"><strong>Notes / Reference:</strong> ' + txn.notes + '</div>' : '') +
     '<div style="font-size:13px; font-weight:600; margin-bottom:6px;">Itemized Assets (' + txn.itemCount + ')</div>' +
@@ -76,6 +72,7 @@ var UI_Detail = (function () {
 
   return {
     open: open,
-    close: close
+    close: close,
+    closeModal: close
   };
 })();

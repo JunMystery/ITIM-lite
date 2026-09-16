@@ -101,14 +101,14 @@ var UI_Inbound = (function () {
       '<div class="modal-header"><h3>+ New Purchase Order</h3><span class="modal-close" onclick="UI_Inbound.closeModal()">✕</span></div>' +
       '<form onsubmit="UI_Inbound.submitCreate(event)"><div class="modal-body" style="max-height:70vh; overflow-y:auto;">' +
         '<div class="form-row">' +
-          '<div class="form-group"><label class="form-label">PO Number:</label><input type="text" id="po-input-id" class="form-input" value="' + nextId + '" readonly style="background:var(--bg-card);" /></div>' +
+          '<div class="form-group"><label class="form-label">PO Number:</label><input type="text" id="po-input-id" class="form-input" value="' + nextId + '" readonly style="background:#f5f5f5;" /></div>' +
           '<div class="form-group"><label class="form-label">Vendor: *</label><input type="text" id="po-input-vendor" class="form-input" required placeholder="e.g. Dell Direct, CDW" /></div>' +
         '</div>' +
         '<div class="form-row">' +
           '<div class="form-group"><label class="form-label">Order Date:</label><input type="date" id="po-input-orderdate" class="form-input" value="' + today + '" required /></div>' +
           '<div class="form-group"><label class="form-label">Notes:</label><input type="text" id="po-input-notes" class="form-input" placeholder="e.g. Q3 Batch Refresh" /></div>' +
         '</div>' +
-        '<div style="margin-top:10px; border-top:1px solid var(--border-color); padding-top:8px;">' +
+        '<div style="margin-top:10px; border-top:1px solid #e5e5e5; padding-top:8px;">' +
           '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;"><strong>Line Items:</strong><button type="button" class="btn btn-sm" onclick="UI_Inbound.addItemRow()">+ Add Item</button></div>' +
           '<div id="po-items-container"></div>' +
         '</div></div>' +
@@ -143,7 +143,7 @@ var UI_Inbound = (function () {
 
     row.innerHTML = '<div style="flex:3;">' + comboHtml + '</div>' +
       '<div style="flex:1;"><input type="number" class="form-input po-item-qty" min="1" value="1" title="Quantity" required /></div>' +
-      '<div style="flex:0.3;"><button type="button" class="btn btn-sm" onclick="this.parentNode.parentNode.remove()" style="color:#d13438;">✕</button></div>';
+      '<div style="flex:0.3;"><button type="button" class="btn btn-sm" onclick="var r=this.parentNode.parentNode; if(r&&r.parentNode) r.parentNode.removeChild(r);" style="color:#d13438;">✕</button></div>';
     container.appendChild(row);
   }
 
@@ -195,18 +195,18 @@ var UI_Inbound = (function () {
       : '<select id="receive-item-idx" class="form-select combo-box">' + itemOpts.map(function(o){ return '<option value="'+o.value+'">'+o.label+'</option>'; }).join("") + '</select>';
 
     host.innerHTML = '<div class="modal-backdrop open" onclick="if ((event.target || event.srcElement) === this) UI_Inbound.closeModal()"><div class="modal" style="width:540px; max-width:92vw;">' +
-      '<div class="modal-header"><h3>📥 Receive Inbound - ' + po.poNumber + '</h3><span class="modal-close" onclick="UI_Inbound.closeModal()">✕</span></div>' +
+      '<div class="modal-header"><h3>Receive Inbound - ' + po.poNumber + '</h3><span class="modal-close" onclick="UI_Inbound.closeModal()">✕</span></div>' +
       '<form onsubmit="UI_Inbound.submitReceive(event, \'' + po.poNumber + '\')"><div class="modal-body">' +
-        '<div style="background:var(--color-primary-light); padding:8px 12px; border-radius:var(--radius-sm); margin-bottom:10px; font-size:12px;"><strong>Vendor:</strong> ' + po.vendor + ' | <strong>Ordered:</strong> ' + po.orderDate + '</div>' +
+        '<div style="background:#e0f0ff; padding:8px 12px; border-radius:4px; margin-bottom:10px; font-size:12px;"><strong>Vendor:</strong> ' + po.vendor + ' | <strong>Ordered:</strong> ' + po.orderDate + '</div>' +
         '<div class="form-row">' +
           '<div class="form-group" style="flex:2;"><label class="form-label">Select Line Item: *</label>' + receiveComboHtml + '</div>' +
           '<div class="form-group" style="flex:1;"><label class="form-label">Quantity to Receive:</label><input type="number" id="receive-qty" class="form-input" min="1" value="1" /></div>' +
         '</div>' +
         '<div class="form-row">' +
-          '<div class="form-group"><label class="form-label">Storage Location: *</label><input type="text" id="receive-location" class="form-input" value="IT Stock Room Shelf A" required /></div>' +
-          '<div class="form-group"><label class="form-label">Receiving Officer:</label><input type="text" id="receive-officer" class="form-input" value="Receiving Staff" required /></div>' +
+          '<div class="form-group" style="flex:2;"><label class="form-label">Storage Location: *</label><input type="text" id="receive-location" class="form-input" value="IT Stock Room Shelf A" required /></div>' +
+          '<div class="form-group" style="flex:1;"><label class="form-label">Receiving Officer:</label><input type="text" id="receive-officer" class="form-input" value="Receiving Staff" required /></div>' +
         '</div>' +
-        '<div class="form-group"><label class="form-label">Serial Numbers (Optional; 1 per line for Hardware):</label><textarea id="receive-serials" class="form-input" rows="2" placeholder="Leave blank, or enter SNs (up to quantity). If fewer than Qty, remainder are left blank."></textarea><small style="color:var(--text-secondary); font-size:11px;">Validation: SN count &le; Qty is OK. SN &gt; Qty is blocked. Remaining items get blank SN.</small></div>' +
+        '<div class="form-group"><label class="form-label">Serial Numbers (Optional; 1 per line for Hardware):</label><textarea id="receive-serials" class="form-input" rows="2" placeholder="Leave blank, or enter SNs (up to quantity). If fewer than Qty, remainder are left blank."></textarea><small style="color:#666666; font-size:11px;">Validation: SN count &le; Qty is OK. SN &gt; Qty is blocked. Remaining items get blank SN.</small></div>' +
       '</div><div class="modal-footer"><button type="button" class="btn" onclick="UI_Inbound.closeModal()">Cancel</button><button type="submit" class="btn btn-primary">Intake to Inventory</button></div>' +
       '</form></div></div>';
   }
@@ -252,10 +252,10 @@ var UI_Inbound = (function () {
     host.innerHTML = '<div class="modal-backdrop open" onclick="if ((event.target || event.srcElement) === this) UI_Inbound.closeModal()"><div class="modal" style="width:620px; max-width:92vw;">' +
       '<div class="modal-header"><h3>Purchase Order - ' + po.poNumber + '</h3><span class="modal-close" onclick="UI_Inbound.closeModal()">✕</span></div>' +
       '<div class="modal-body" style="max-height:70vh; overflow-y:auto;">' +
-        '<div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px; font-size:12px;">' +
-          '<div><strong>Vendor:</strong> ' + po.vendor + '</div><div><strong>Status:</strong> ' + getStatusBadge(po.status) + '</div>' +
-          '<div><strong>Order Date:</strong> ' + (po.orderDate || "—") + '</div><div><strong>Received Date:</strong> ' + (po.receivedDate || "—") + '</div>' +
-          '<div style="grid-column: span 2;"><strong>Notes:</strong> ' + (po.notes || "—") + '</div>' +
+        '<div style="margin-bottom:12px; font-size:12px;">' +
+          '<div class="form-row" style="margin-bottom:6px;"><div style="flex:1;"><strong>Vendor:</strong> ' + po.vendor + '</div><div style="flex:1;"><strong>Status:</strong> ' + getStatusBadge(po.status) + '</div></div>' +
+          '<div class="form-row" style="margin-bottom:6px;"><div style="flex:1;"><strong>Order Date:</strong> ' + (po.orderDate || "—") + '</div><div style="flex:1;"><strong>Received Date:</strong> ' + (po.receivedDate || "—") + '</div></div>' +
+          '<div><strong>Notes:</strong> ' + (po.notes || "—") + '</div>' +
         '</div>' +
         '<table class="data-table"><thead><tr><th>Item</th><th>Category</th><th>Ordered</th><th>Received</th><th>Created Asset IDs</th></tr></thead><tbody>' + itemRows.join("") + '</tbody></table>' +
       '</div><div class="modal-footer"><button type="button" class="btn" onclick="UI_Inbound.closeModal()">Close</button></div></div></div>';

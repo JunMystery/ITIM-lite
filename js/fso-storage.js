@@ -8,12 +8,13 @@ var FsoStorage = (function () {
   var fso = null;
 
   try {
-    if (typeof window.ActiveXObject !== "undefined") {
+    if ((typeof window !== "undefined" && "ActiveXObject" in window) || typeof ActiveXObject !== "undefined") {
       fso = new ActiveXObject("Scripting.FileSystemObject");
-      isHta = true;
+      isHta = !!fso;
     }
   } catch (e) {
     isHta = false;
+    fso = null;
   }
 
   function getBaseDir() {
@@ -59,8 +60,11 @@ var FsoStorage = (function () {
   }
 
   function readUtf8(filePath) {
-    if (!isHta) {
-      return localStorage.getItem("ITIM_DB_CACHE");
+    if (!isHta || !fso) {
+      if (typeof localStorage !== "undefined" && localStorage) {
+        return localStorage.getItem("ITIM_DB_CACHE");
+      }
+      return null;
     }
     try {
       if (!fso.FileExists(filePath)) return null;
@@ -78,8 +82,10 @@ var FsoStorage = (function () {
   }
 
   function writeUtf8(filePath, content) {
-    if (!isHta) {
-      localStorage.setItem("ITIM_DB_CACHE", content);
+    if (!isHta || !fso) {
+      if (typeof localStorage !== "undefined" && localStorage) {
+        localStorage.setItem("ITIM_DB_CACHE", content);
+      }
       return true;
     }
     try {
@@ -103,7 +109,7 @@ var FsoStorage = (function () {
     var absPath = resolvePath(pathStr);
     var isSmb = /^\\[\\]/.test(absPath) || (!/^[a-zA-Z]:\\/.test(absPath) && absPath.indexOf(":") === -1);
 
-    if (!isHta) {
+    if (!isHta || !fso) {
       return {
         success: true,
         type: "browser-emulated",

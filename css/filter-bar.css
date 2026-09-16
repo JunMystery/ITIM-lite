@@ -23,7 +23,7 @@
   top: 50%;
   transform: translateY(-50%);
   font-size: 13px;
-  color: var(--text-tertiary);
+  color: #8a8a8a;
   pointer-events: none;
 }
 
@@ -32,17 +32,17 @@
   height: 32px;
   padding: 4px 28px 4px 30px;
   font-size: 13px;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-sm);
-  background: var(--bg-surface);
-  color: var(--text-primary);
+  border: 1px solid #d1d1d1;
+  border-radius: 4px;
+  background: #ffffff;
+  color: #1a1a1a;
   box-sizing: border-box;
   outline: none;
 }
 
 .table-toolbar .toolbar-search-input:focus {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 1px var(--color-primary);
+  border-color: #0067b8;
+  box-shadow: 0 0 0 1px #0067b8;
 }
 
 .table-toolbar .toolbar-search-clear {
@@ -53,14 +53,14 @@
   background: none;
   border: none;
   font-size: 11px;
-  color: var(--text-tertiary);
+  color: #8a8a8a;
   cursor: pointer;
   padding: 2px 4px;
   display: none;
 }
 
 .table-toolbar .toolbar-search-clear:hover {
-  color: var(--color-danger);
+  color: #d13438;
 }
 
 .table-toolbar .toolbar-btn-filter {
@@ -71,21 +71,21 @@
   padding: 0 12px;
   font-size: 12px;
   font-weight: 500;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-sm);
-  background: var(--bg-surface);
-  color: var(--text-primary);
+  border: 1px solid #d1d1d1;
+  border-radius: 4px;
+  background: #ffffff;
+  color: #1a1a1a;
   cursor: pointer;
 }
 
 .table-toolbar .toolbar-btn-filter:hover {
-  background: var(--bg-hover);
-  border-color: var(--text-tertiary);
+  background: #f0f0f0;
+  border-color: #8a8a8a;
 }
 
 .table-toolbar .filter-badge {
   display: inline-block;
-  background: var(--color-primary);
+  background: #0067b8;
   color: #ffffff;
   font-size: 11px;
   font-weight: 700;
@@ -100,7 +100,7 @@
   align-items: center;
   padding: 0 8px;
   font-size: 12px;
-  color: var(--color-danger);
+  color: #d13438;
   background: none;
   border: none;
   cursor: pointer;
@@ -123,8 +123,8 @@
   gap: 4px;
   font-size: 11px;
   padding: 2px 8px;
-  background: var(--color-primary-light);
-  color: var(--color-primary);
+  background: #e0f0ff;
+  color: #0067b8;
   border-radius: 12px;
 }
 
@@ -134,7 +134,11 @@
 }
 
 .filter-dialog-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.filter-dialog-grid > * {
+  flex: 1 1 45%;
+  margin: 6px;
 }

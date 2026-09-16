@@ -51,7 +51,7 @@ var UI_FilterBar = (function () {
         '<button type="button" class="toolbar-search-clear" id="search-clear-' + viewId + '" style="' + (curSearch ? 'display:block;' : 'display:none;') + '" onclick="UI_FilterBar.clearSearch(\'' + viewId + '\')">✕</button>' +
       '</div>' +
       '<button type="button" class="toolbar-btn-filter" onclick="UI_FilterBar.openDialog(\'' + viewId + '\')">' +
-        '<span>⚙️ Filter</span>' +
+        '<span>Filter</span>' +
         '<span class="filter-badge" id="filter-badge-' + viewId + '" style="' + (cnt > 0 ? 'display:inline-block;' : 'display:none;') + '">' + cnt + '</span>' +
       '</button>' +
       '<button type="button" class="toolbar-btn-reset" id="filter-reset-' + viewId + '" style="' + (cnt > 0 ? 'display:inline-flex;' : 'display:none;') + '" onclick="UI_FilterBar.resetFilters(\'' + viewId + '\')">Reset Filters</button>' +
@@ -150,7 +150,7 @@ var UI_FilterBar = (function () {
     };
 
     div.innerHTML = '<div class="modal" style="width:480px; max-width:92vw;">' +
-      '<div class="modal-header"><h3>⚙️ Filter ' + (cfg.title || "Items") + '</h3><button type="button" class="btn btn-sm" onclick="UI_FilterBar.closeDialog()">✕</button></div>' +
+      '<div class="modal-header"><h3>Filter ' + (cfg.title || "Items") + '</h3><button type="button" class="btn btn-sm" onclick="UI_FilterBar.closeDialog()">✕</button></div>' +
       '<div class="modal-body"><div class="filter-dialog-grid">' + fieldsHtml.join("") + '</div></div>' +
       '<div class="modal-footer"><button type="button" class="btn" onclick="UI_FilterBar.resetModalInputs()">Reset</button><button type="button" class="btn btn-primary" onclick="UI_FilterBar.applyDialog()">Apply Filters</button></div>' +
     '</div>';

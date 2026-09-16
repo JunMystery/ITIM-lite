@@ -30,6 +30,7 @@ var BackupEngine = (function () {
   function listBackups(storagePath) {
     if (!FsoStorage.isHta) {
       try {
+        if (typeof localStorage === "undefined" || !localStorage) return [];
         var raw = localStorage.getItem("ITIM_BACKUPS_INDEX") || "[]";
         return JSON.parse(raw);
       } catch (e) {
@@ -116,6 +117,7 @@ var BackupEngine = (function () {
       }
     } else {
       try {
+        if (typeof localStorage === "undefined" || !localStorage) return;
         var delMap = {};
         for (var d = 0; d < toDelete.length; d++) {
           delMap[toDelete[d].name] = true;
@@ -139,6 +141,9 @@ var BackupEngine = (function () {
 
     if (!FsoStorage.isHta) {
       try {
+        if (typeof localStorage === "undefined" || !localStorage) {
+          return { success: false, error: "Storage not available" };
+        }
         var list = listBackups(storagePath);
         list.unshift({
           name: filename,
@@ -179,7 +184,9 @@ var BackupEngine = (function () {
   function restoreBackup(storagePath, backupFileName) {
     var content = null;
     if (!FsoStorage.isHta) {
-      content = localStorage.getItem("ITIM_BACKUP_" + backupFileName);
+      if (typeof localStorage !== "undefined" && localStorage) {
+        content = localStorage.getItem("ITIM_BACKUP_" + backupFileName);
+      }
     } else {
       try {
         var fso = new ActiveXObject("Scripting.FileSystemObject");
