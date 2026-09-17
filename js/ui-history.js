@@ -9,31 +9,43 @@ var UI_History = (function () {
   var picker = null;
   var currentParentTxnId = null;
 
+  function tr(k, fb) { return (typeof I18N !== "undefined") ? I18N.t(k) : (fb || k); }
+
   function ensureModal() {
     if (document.getElementById("transaction-modal")) return;
     var host = document.getElementById("modal-host") || document.body;
     var div = document.createElement("div");
     div.id = "transaction-modal"; div.className = "modal-backdrop";
     div.onclick = function (e) { e = e || window.event; if ((e.target || e.srcElement) === div) closeModal(); };
-    div.innerHTML = '<div class="modal" style="width:640px; max-width:92vw;">' +
-      '<div class="modal-header"><h3 id="txn-modal-title">Multi-Item Transaction</h3><button class="btn btn-sm" onclick="UI_History.closeModal()">✕</button></div>' +
-      '<div class="modal-body">' +
+    var typeOpts = [
+      { value: "CHECKOUT", label: tr("filter_checkouts", "Check-out") + " (" + tr("btn_checkout_asset", "Assign to Staff") + ")" },
+      { value: "CHECKIN", label: tr("filter_checkins", "Check-in") + " (" + tr("action_return_stock", "Return / Disposal") + ")" },
+      { value: "repair", label: tr("status_repair", "Send to Repair") },
+      { value: "retired", label: tr("status_retired", "Retire / Dispose") }
+    ];
+    var comboHtml = (typeof UI_ComboBox !== "undefined")
+      ? UI_ComboBox.renderHtml("txn-input-type", typeOpts, "CHECKOUT", "", 'onchange="UI_History.onTypeChange()"')
+      : '<select id="txn-input-type" class="form-select combo-box" onchange="UI_History.onTypeChange()"><option value="CHECKOUT">Check-out</option><option value="CHECKIN">Check-in</option><option value="repair">Send to Repair</option><option value="retired">Retire / Dispose</option></select>';
+
+    div.innerHTML = '<div class="modal modal-secondary" style="width:66vw; max-width:92vw;">' +
+      '<div class="modal-header"><h3 id="txn-modal-title">' + tr("txn_modal_title", "Multi-Item Transaction") + '</h3><button class="btn btn-sm" onclick="UI_History.closeModal()">✕</button></div>' +
+      '<div class="modal-body" style="flex:1 1 auto; min-height:0; overflow-y:auto; padding:16px 20px;">' +
         '<div class="form-row">' +
-          '<div class="form-group"><label class="form-label">Transaction Type:</label>' + (typeof UI_ComboBox !== "undefined" ? UI_ComboBox.renderHtml("txn-input-type", [{value:"CHECKOUT",label:"Check-out (Assign to Staff)"},{value:"CHECKIN",label:"Check-in (Return / Disposal)"},{value:"repair",label:"Send to Repair"},{value:"retired",label:"Retire / Dispose"}], "CHECKOUT", "", 'onchange="UI_History.onTypeChange()"') : '<select id="txn-input-type" class="form-select combo-box" onchange="UI_History.onTypeChange()"><option value="CHECKOUT">Check-out</option><option value="CHECKIN">Check-in</option><option value="repair">Send to Repair</option><option value="retired">Retire / Dispose</option></select>') + '</div>' +
-          '<div class="form-group"><label class="form-label">Issuing IT Officer:</label><input type="text" id="txn-input-officer" class="form-input" value="IT Administrator" /></div>' +
+          '<div class="form-group"><label class="form-label">' + tr("lbl_txn_type", "Transaction Type:") + '</label>' + comboHtml + '</div>' +
+          '<div class="form-group"><label class="form-label">' + tr("lbl_issuing_officer", "Issuing IT Officer:") + '</label><input type="text" id="txn-input-officer" class="form-input" value="IT Administrator" /></div>' +
         '</div>' +
         '<div id="txn-picker-host" style="margin-bottom:10px;"></div>' +
         '<div id="txn-checkin-fields" style="display:none; background:var(--bg-surface-secondary); padding:8px; border-radius:4px; margin-bottom:10px; border:1px solid var(--border-subtle);">' +
-          '<div style="font-size:12px; font-weight:600; margin-bottom:6px;">Check-in Item Dispositions:</div>' +
+          '<div style="font-size:12px; font-weight:600; margin-bottom:6px;">' + tr("lbl_checkin_dispositions", "Check-in Item Dispositions:") + '</div>' +
           '<div id="txn-checkin-list"></div>' +
         '</div>' +
         '<div id="txn-checkout-fields">' +
-          '<div class="form-row"><div class="form-group"><label class="form-label">Recipient Employee *:</label><input type="text" id="txn-input-employee" class="form-input" placeholder="Full Name" /></div><div class="form-group"><label class="form-label">Department:</label><input type="text" id="txn-input-dept" class="form-input" placeholder="Department" /></div></div>' +
-          '<div class="form-row"><div class="form-group"><label class="form-label">Expected Return Date:</label><input type="date" id="txn-input-expected" class="form-input" /></div><div class="form-group"><label class="form-label">Condition at Handover:</label><input type="text" id="txn-input-condition" class="form-input" value="Good / Functional" /></div></div>' +
+          '<div class="form-row"><div class="form-group"><label class="form-label">' + tr("lbl_recipient_emp", "Recipient Employee *:") + '</label><input type="text" id="txn-input-employee" class="form-input" placeholder="' + tr("ph_employee_name", "Full Name") + '" /></div><div class="form-group"><label class="form-label">' + tr("ph_department", "Department") + ':</label><input type="text" id="txn-input-dept" class="form-input" placeholder="' + tr("ph_department", "Department") + '" /></div></div>' +
+          '<div class="form-row"><div class="form-group"><label class="form-label">' + tr("lbl_expected_return", "Expected Return Date:") + '</label><input type="date" id="txn-input-expected" class="form-input" /></div><div class="form-group"><label class="form-label">' + tr("lbl_condition_handover", "Condition at Handover:") + '</label><input type="text" id="txn-input-condition" class="form-input" value="Good / Functional" /></div></div>' +
         '</div>' +
-        '<div class="form-group"><label class="form-label">Transaction Notes / Reference:</label><textarea id="txn-input-notes" class="form-textarea" rows="2" placeholder="Ticket number, project, reason..."></textarea></div>' +
+        '<div class="form-group"><label class="form-label">' + tr("lbl_txn_notes", "Transaction Notes / Reference:") + '</label><textarea id="txn-input-notes" class="form-textarea" rows="2" placeholder="' + tr("ph_notes", "Ticket number, project, reason...") + '"></textarea></div>' +
       '</div>' +
-      '<div class="modal-footer"><button class="btn" onclick="UI_History.closeModal()">Cancel</button><button class="btn btn-primary" onclick="UI_History.submitTransaction()">Execute Transaction</button></div></div>';
+      '<div class="modal-footer"><button class="btn" onclick="UI_History.closeModal()">' + tr("btn_cancel", "Cancel") + '</button><button class="btn btn-primary" onclick="UI_History.submitTransaction()">' + tr("btn_execute_txn", "Execute Transaction") + '</button></div></div>';
     host.appendChild(div);
   }
 
@@ -118,11 +130,11 @@ var UI_History = (function () {
       }
 
       html.push('<tr class="clickable-row" onclick="UI_ActionsMenu.onRowClick(event, \'history\', \'' + txn.id + '\')" oncontextmenu="UI_ActionsMenu.show(event, \'history\', \'' + txn.id + '\')">' +
-        '<td style="font-family:var(--font-mono); font-weight:700; width:100px;"><a href="javascript:void(0)" onclick="UI_History.openDetail(\'' + txn.id + '\')" style="color:var(--color-primary); text-decoration:underline;">' + txn.id + '</a></td>' +
+        '<td style="width:100px;"><button type="button" onclick="UI_History.openDetail(\'' + txn.id + '\')" style="background:none; border:none; padding:0; font-family:var(--font-mono); font-weight:700; color:var(--color-primary); text-decoration:underline; cursor:pointer;">' + txn.id + '</button></td>' +
         '<td style="width:110px;"><span class="badge ' + badgeClass + '">' + txn.type + '</span></td>' +
         '<td><strong>' + (txn.employeeName || "Stock / Internal") + '</strong><br><span style="font-size:11px; color:var(--text-secondary);">' + (txn.department || "") + '</span></td>' +
         '<td><div style="margin-bottom:3px; font-weight:600;">' + txn.itemCount + ' item' + (txn.itemCount > 1 ? 's' : '') + '</div><div style="display:flex; gap:4px; flex-wrap:wrap;">' + itemsSnippet.join(" ") + '</div></td>' +
-        '<td style="font-family:var(--font-mono); font-size:11px; width:140px;">' + txn.timestamp + '</td>' +
+        '<td style="font-family:var(--font-mono); font-size:11px; width:140px;">' + (typeof I18N !== "undefined" ? I18N.formatDateTime(txn.timestamp) : txn.timestamp) + '</td>' +
         '<td style="text-align:right;">' +
           '<button class="btn btn-icon btn-sm action-menu-trigger" onclick="UI_ActionsMenu.show(event, \'history\', \'' + txn.id + '\')" title="Actions">⋮</button>' +
         '</td>' +
@@ -222,6 +234,12 @@ var UI_History = (function () {
     if (items.length === 0) {
       Notifications.show("Please select at least one item for this transaction.", "warning");
       return;
+    }
+    for (var m = 0; m < items.length; m++) {
+      if (items[m].isSerialized && !items[m].serial) {
+        Notifications.show("Please input Serial Number (SN) for " + (items[m].name || items[m].id) + " on the staging list.", "warning");
+        return;
+      }
     }
     var type = UI_ComboBox.getValue("txn-input-type") || document.getElementById("txn-input-type").value;
     var officer = document.getElementById("txn-input-officer").value.trim();

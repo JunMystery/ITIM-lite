@@ -149,7 +149,7 @@ var UI_FilterBar = (function () {
       if ((e.target || e.srcElement) === div) closeDialog();
     };
 
-    div.innerHTML = '<div class="modal" style="width:480px; max-width:92vw;">' +
+    div.innerHTML = '<div class="modal modal-secondary" style="width:66vw; max-width:92vw;">' +
       '<div class="modal-header"><h3>Filter ' + (cfg.title || "Items") + '</h3><button type="button" class="btn btn-sm" onclick="UI_FilterBar.closeDialog()">✕</button></div>' +
       '<div class="modal-body"><div class="filter-dialog-grid">' + fieldsHtml.join("") + '</div></div>' +
       '<div class="modal-footer"><button type="button" class="btn" onclick="UI_FilterBar.resetModalInputs()">Reset</button><button type="button" class="btn btn-primary" onclick="UI_FilterBar.applyDialog()">Apply Filters</button></div>' +

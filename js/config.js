@@ -141,7 +141,16 @@ var ITIM_CONFIG = {
     consumables: [
       { id: "CON-3001", name: "Cat6 Ethernet Cable (2m / 6ft)", category: "Cables & Adapters", quantity: 34, minQuantity: 10, location: "Storage Bin C1" },
       { id: "CON-3002", name: "HP 89A Black Toner Cartridge", category: "Toner & Cartridge", quantity: 2, minQuantity: 3, location: "Cabinet 2 - Shelf 1" },
-      { id: "CON-3003", name: "Logitech MK270 Wireless Combo", category: "Keyboards & Mice", quantity: 8, minQuantity: 5, location: "Storage Bin A4" }
+      { id: "CON-3003", name: "Logitech MK270 Wireless Combo", category: "Keyboards & Mice", quantity: 8, minQuantity: 5, location: "Storage Bin A4" },
+      {
+        id: "CON-3004", name: "Zebra DS2208 Handheld Barcode Gun", category: "Peripherals & Tools",
+        quantity: 3, minQuantity: 1, location: "IT Tool Cabinet A", isSerialized: true,
+        serials: [
+          { sn: "BG-2208-001", status: "available", location: "Shelf A1" },
+          { sn: "BG-2208-002", status: "available", location: "Shelf A2" },
+          { sn: "BG-2208-003", status: "assigned", assignedTo: "Logistics Dept", location: "Dock Station" }
+        ]
+      }
     ],
     assignments: [
       {

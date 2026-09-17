@@ -58,6 +58,7 @@ var POService = (function () {
       var master = (typeof CatalogService !== "undefined") ? CatalogService.getById(item.masterId || item.id || item.sku) : null;
       if (!master && !item.name) throw new Error("Line item requires a registered master item or item name.");
       var itemType = master ? master.type : (item.type || (item.category === "Cables & Adapters" || item.category === "Toner & Cartridge" ? "consumable" : "asset"));
+      var preSerials = (item.serials && item.serials.length) ? item.serials.slice(0) : [];
       po.items.push({
         masterId: master ? master.id : (item.masterId || ""),
         name: master ? master.name : (item.name || "Item"),
@@ -65,7 +66,8 @@ var POService = (function () {
         category: master ? master.category : (item.category || "Laptop"),
         model: master ? master.model : (item.model || ""),
         qtyOrdered: parseInt(item.qtyOrdered, 10) || 1,
-        qtyReceived: 0, assetIds: [], licenseIds: [], consumableIds: []
+        qtyReceived: 0, assetIds: [], licenseIds: [], consumableIds: [],
+        serials: preSerials
       });
     }
 
@@ -92,7 +94,7 @@ var POService = (function () {
       throw new Error("Line item " + item.name + " is already fully received.");
     }
 
-    var serials = (receiptDetails && receiptDetails.serials) ? receiptDetails.serials : [];
+    var serials = (receiptDetails && receiptDetails.serials) ? receiptDetails.serials : ((item.serials && item.serials.length) ? item.serials.slice(0) : []);
     var qty = (receiptDetails && receiptDetails.qty !== undefined && receiptDetails.qty !== null) ? (parseInt(receiptDetails.qty, 10) || 1) : (serials.length > 0 ? serials.length : 1);
 
     if (serials.length > qty) {
@@ -114,23 +116,31 @@ var POService = (function () {
       var allCons = (typeof ConsumablesService !== "undefined") ? ConsumablesService.getAll() : [];
       var existing = null;
       for (var c = 0; c < allCons.length; c++) {
-        if (allCons[c].name.toLowerCase() === item.name.toLowerCase()) {
-          existing = allCons[c];
-          break;
-        }
+        if (allCons[c].name.toLowerCase() === item.name.toLowerCase()) { existing = allCons[c]; break; }
       }
+      var isSerialized = !!(receiptDetails && receiptDetails.isSerialized) || (serials.length > 0);
+      var loc = (receiptDetails && receiptDetails.location) ? receiptDetails.location : "IT Stock Shelf C";
       if (existing) {
         ConsumablesService.adjustQuantity(existing.id, qty);
-        if (receiptDetails && receiptDetails.location) existing.location = receiptDetails.location;
+        if (receiptDetails && receiptDetails.location) existing.location = loc;
+        if (isSerialized) {
+          existing.isSerialized = true;
+          if (!existing.serials) existing.serials = [];
+          for (var si = 0; si < serials.length; si++) {
+            existing.serials.push({ sn: serials[si].trim(), status: "available", location: loc });
+          }
+        }
         createdConsumables.push(existing);
       } else if (typeof ConsumablesService !== "undefined") {
+        var newSerials = [];
+        if (isSerialized) {
+          for (var sj = 0; sj < serials.length; sj++) {
+            newSerials.push({ sn: serials[sj].trim(), status: "available", location: loc });
+          }
+        }
         var newCon = ConsumablesService.addInboundConsumable({
-          name: item.name,
-          category: item.category,
-          quantity: qty,
-          minQuantity: 5,
-          location: (receiptDetails && receiptDetails.location) ? receiptDetails.location : "IT Stock Shelf C",
-          poNumber: po.poNumber
+          name: item.name, category: item.category, quantity: qty, minQuantity: 5,
+          location: loc, poNumber: po.poNumber, isSerialized: isSerialized, serials: newSerials
         });
         createdConsumables.push(newCon);
       }
@@ -142,24 +152,24 @@ var POService = (function () {
       var allLic = (typeof LicensesService !== "undefined") ? LicensesService.getAll() : [];
       var existingLic = null;
       for (var l = 0; l < allLic.length; l++) {
-        if (allLic[l].software.toLowerCase() === item.name.toLowerCase()) {
-          existingLic = allLic[l];
-          break;
-        }
+        if (allLic[l].software.toLowerCase() === item.name.toLowerCase()) { existingLic = allLic[l]; break; }
       }
+      var singleKey = (receiptDetails && receiptDetails.licenseKey) ? receiptDetails.licenseKey.trim() : "";
+      var multiKeys = (receiptDetails && receiptDetails.licenseKeys) ? receiptDetails.licenseKeys : [];
+      var effKey = singleKey || (multiKeys.length > 0 ? multiKeys.join(", ") : (serials.length > 0 ? serials.join(", ") : ""));
       if (existingLic) {
-        LicensesService.update(existingLic.id, {
+        var upd = {
           totalSeats: (existingLic.totalSeats || 0) + qty,
           expiryDate: (receiptDetails && receiptDetails.expiryDate) ? receiptDetails.expiryDate : existingLic.expiryDate
-        });
+        };
+        if (effKey && !existingLic.key) upd.key = effKey;
+        if (multiKeys.length > 0) existingLic.keys = (existingLic.keys || []).concat(multiKeys);
+        LicensesService.update(existingLic.id, upd);
         createdLicenses.push(existingLic);
       } else if (typeof LicensesService !== "undefined") {
         var newLic = LicensesService.add({
-          software: item.name,
-          vendor: item.vendor || po.vendor,
-          type: "Subscription",
-          totalSeats: qty,
-          assignedSeats: 0,
+          software: item.name, vendor: item.vendor || po.vendor, type: "Subscription",
+          totalSeats: qty, assignedSeats: 0, key: effKey, keys: multiKeys,
           expiryDate: (receiptDetails && receiptDetails.expiryDate) ? receiptDetails.expiryDate : "",
           notes: "Intake from PO " + po.poNumber
         });
@@ -210,20 +220,20 @@ var POService = (function () {
     // Auto-record INBOUND transaction record
     var txnItems = [];
     if (isConsumable && createdConsumables.length) {
+      var conSn = (serials.length > 0) ? serials.join(", ") : ("QTY: " + qty);
       txnItems.push({
-        assetId: createdConsumables[0].id,
-        name: item.name,
-        category: item.category,
-        serial: "QTY: " + qty,
+        assetId: createdConsumables[0].id, name: item.name, category: item.category, serial: conSn,
         condition: (receiptDetails && receiptDetails.condition) ? receiptDetails.condition : "Factory Sealed / New"
+      });
+    } else if (isSoftware && createdLicenses.length) {
+      txnItems.push({
+        assetId: createdLicenses[0].id, name: item.name, category: "Software", serial: effKey || ("SEATS: +" + qty),
+        condition: "Licensed / Active"
       });
     } else {
       for (var k = 0; k < createdAssets.length; k++) {
         txnItems.push({
-          assetId: createdAssets[k].id,
-          name: createdAssets[k].name,
-          category: createdAssets[k].category,
-          serial: createdAssets[k].serial,
+          assetId: createdAssets[k].id, name: createdAssets[k].name, category: createdAssets[k].category, serial: createdAssets[k].serial,
           condition: (receiptDetails && receiptDetails.condition) ? receiptDetails.condition : "Factory Sealed / New"
         });
       }
@@ -244,11 +254,13 @@ var POService = (function () {
     db.transactions.unshift(inboundTxn);
 
     if (typeof AuditService !== "undefined") {
-      var itemRef = isConsumable ? (createdConsumables.map(function (c) { return c.id; }).join(", ")) : (createdAssets.map(function (a) { return a.id; }).join(", "));
+      var itemRef = isConsumable ? (createdConsumables.map(function (c) { return c.id; }).join(", "))
+        : isSoftware ? (createdLicenses.map(function (l) { return l.id; }).join(", "))
+        : (createdAssets.map(function (a) { return a.id; }).join(", "));
       AuditService.log("PO_RECEIVE", "Received " + qty + "x " + item.name + " on " + po.poNumber + " (" + itemRef + ")");
     }
     AppState.save();
-    return { success: true, po: po, isConsumable: isConsumable, assets: createdAssets, consumables: createdConsumables, transaction: inboundTxn };
+    return { success: true, po: po, isConsumable: isConsumable, isSoftware: isSoftware, assets: createdAssets, consumables: createdConsumables, licenses: createdLicenses, transaction: inboundTxn };
   }
 
   function cancelPO(poNumber, reason) {

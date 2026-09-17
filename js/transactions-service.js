@@ -67,10 +67,21 @@ var TransactionsService = (function () {
             InventoryService.update(asset.id, { status: "inuse", assignedTo: params.employeeName, department: params.department || asset.department });
           }
         } else if (type === "consumable") {
-          var con = ConsumablesService.getById(it.id);
-          var cQty = it.quantity || 1;
-          items.push({ itemType: "consumable", assetId: it.id, name: con ? con.name : it.name, category: con ? con.category : "Consumable", quantity: cQty, condition: "Issued" });
-          if (typeof ConsumablesService !== "undefined" && con) ConsumablesService.adjustQuantity(it.id, -cQty);
+          var con = ConsumablesService.getById(it.id), cQty = it.quantity || 1;
+          items.push({ itemType: "consumable", assetId: it.id, name: con ? con.name : it.name, category: con ? con.category : "Consumable", serial: it.serial || "", quantity: cQty, condition: "Issued" });
+          if (typeof ConsumablesService !== "undefined" && con) {
+            ConsumablesService.adjustQuantity(it.id, -cQty);
+            if (it.serial && con.serials) {
+              for (var si = 0; si < con.serials.length; si++) {
+                var sObj = con.serials[si];
+                if ((typeof sObj === "string" ? sObj : sObj.sn) === it.serial) {
+                  if (typeof sObj === "object") { sObj.status = "assigned"; sObj.assignedTo = params.employeeName; }
+                  break;
+                }
+              }
+              AppState.save();
+            }
+          }
         } else if (type === "license") {
           var lic = LicensesService.getById(it.id);
           items.push({ itemType: "license", assetId: it.id, name: lic ? lic.software : it.name, category: lic ? lic.vendor : "Software", quantity: 1, condition: "Assigned" });
@@ -275,22 +286,18 @@ var TransactionsService = (function () {
   function printTransactionReceipt(txnId) {
     var txn = getById(txnId);
     if (!txn) return;
-    var w = window.open("", "_blank", "width=850,height=750");
-    if (!w) { alert("Popup blocked. Please allow popups to print transaction receipts."); return; }
-    w.document.write(generateReceiptHtml(txn));
-    w.document.close();
+    var html = generateReceiptHtml(txn);
+    if (typeof UI_AssetModal !== "undefined" && UI_AssetModal.printHtmlInPage) {
+      UI_AssetModal.printHtmlInPage(html);
+    } else {
+      window.print();
+    }
   }
 
   return {
-    getAll: getAll,
-    getById: getById,
-    getActiveHandovers: getActiveHandovers,
-    getActiveByAsset: getActiveByAsset,
-    generateNextTxnId: generateNextTxnId,
-    checkoutBulk: checkoutBulk,
-    checkinBulk: checkinBulk,
-    changeStatusBulk: changeStatusBulk,
-    generateReceiptHtml: generateReceiptHtml,
-    printTransactionReceipt: printTransactionReceipt
+    getAll: getAll, getById: getById, getActiveHandovers: getActiveHandovers,
+    getActiveByAsset: getActiveByAsset, generateNextTxnId: generateNextTxnId,
+    checkoutBulk: checkoutBulk, checkinBulk: checkinBulk, changeStatusBulk: changeStatusBulk,
+    generateReceiptHtml: generateReceiptHtml, printTransactionReceipt: printTransactionReceipt
   };
 })();

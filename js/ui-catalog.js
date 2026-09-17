@@ -7,6 +7,8 @@ var UI_Catalog = (function () {
   var editingId = null;
   var activeFilter = "all";
 
+  function tr(k, fb) { return (typeof I18N !== "undefined") ? I18N.t(k) : (fb || k); }
+
   function ensureModal() {
     if (document.getElementById("catalog-modal")) return;
     var host = document.getElementById("modal-host") || document.body;
@@ -19,29 +21,29 @@ var UI_Catalog = (function () {
     };
 
     var typeSelectHtml = UI_ComboBox.renderHtml("cat-input-type", [
-      { value: "hardware", label: "Hardware (Asset)" },
-      { value: "software", label: "Software (License)" },
-      { value: "consumable", label: "Consumable (Stock)" }
+      { value: "hardware", label: tr("tab_hardware", "Hardware (Asset)") },
+      { value: "software", label: tr("tab_software", "Software (License)") },
+      { value: "consumable", label: tr("tab_consumables", "Consumable (Stock)") }
     ], "hardware", "", 'onchange="UI_Catalog.onTypeChange()"');
 
     var catSelectHtml = UI_ComboBox.renderHtml("cat-input-category", [], "", "", 'onchange="UI_Catalog.onCategoryChange()"');
 
-    div.innerHTML = '<div class="modal" style="width:560px; max-width:92vw;">' +
-      '<div class="modal-header"><h3 id="catalog-modal-title">Register Master Item</h3><button class="btn btn-sm" onclick="UI_Catalog.closeModal()">✕</button></div>' +
-      '<div class="modal-body">' +
+    div.innerHTML = '<div class="modal modal-secondary" style="width:66vw; max-width:92vw;">' +
+      '<div class="modal-header"><h3 id="catalog-modal-title">' + tr("cat_modal_title_new", "Register Master Item") + '</h3><button class="btn btn-sm" onclick="UI_Catalog.closeModal()">✕</button></div>' +
+      '<div class="modal-body" style="flex:1 1 auto; min-height:0; overflow-y:auto; padding:16px 20px;">' +
         '<div class="form-row">' +
-          '<div class="form-group"><label class="form-label">SKU / Custom Barcode:</label><input type="text" id="cat-input-sku" class="form-input" placeholder="e.g. SKU-1001 or blank for auto" /></div>' +
-          '<div class="form-group"><label class="form-label">Item Type: *</label>' + typeSelectHtml + '</div>' +
+          '<div class="form-group"><label class="form-label">' + tr("cat_sku_barcode", "SKU / Custom Barcode:") + '</label><input type="text" id="cat-input-sku" class="form-input" placeholder="e.g. SKU-1001 or blank for auto" /></div>' +
+          '<div class="form-group"><label class="form-label">' + tr("cat_item_type", "Item Type: *") + '</label>' + typeSelectHtml + '</div>' +
         '</div>' +
-        '<div class="form-group"><label class="form-label">Item Name: *</label><input type="text" id="cat-input-name" class="form-input" placeholder="e.g. Dell Latitude 5530 or Office 365" required /></div>' +
+        '<div class="form-group"><label class="form-label">' + tr("cat_item_name", "Item Name: *") + '</label><input type="text" id="cat-input-name" class="form-input" placeholder="e.g. Dell Latitude 5530 or Office 365" required /></div>' +
         '<div class="form-row">' +
-          '<div class="form-group"><label class="form-label">Category: *</label>' + catSelectHtml + '</div>' +
-          '<div class="form-group"><label class="form-label">Model / Edition:</label><input type="text" id="cat-input-model" class="form-input" placeholder="e.g. Core i7 16GB / E3 Plan" /></div>' +
+          '<div class="form-group"><label class="form-label">' + tr("cat_category", "Category: *") + '</label>' + catSelectHtml + '</div>' +
+          '<div class="form-group"><label class="form-label">' + tr("cat_model_edition", "Model / Edition:") + '</label><input type="text" id="cat-input-model" class="form-input" placeholder="e.g. Core i7 16GB / E3 Plan" /></div>' +
         '</div>' +
         '<div id="cat-custom-fields-container"></div>' +
-        '<div class="form-group"><label class="form-label">Description / Specifications / Notes:</label><input type="text" id="cat-input-notes" class="form-input" placeholder="Standard specifications or vendor notes" /></div>' +
+        '<div class="form-group"><label class="form-label">' + tr("cat_specs_notes", "Description / Specifications / Notes:") + '</label><input type="text" id="cat-input-notes" class="form-input" placeholder="Standard specifications or vendor notes" /></div>' +
       '</div>' +
-      '<div class="modal-footer"><button class="btn" onclick="UI_Catalog.closeModal()">Cancel</button><button class="btn btn-primary" onclick="UI_Catalog.save()">Save Item</button></div>' +
+      '<div class="modal-footer"><button class="btn" onclick="UI_Catalog.closeModal()">' + tr("btn_cancel", "Cancel") + '</button><button class="btn btn-primary" onclick="UI_Catalog.save()">' + tr("btn_save_item", "Save Item") + '</button></div>' +
     '</div>';
     host.appendChild(div);
   }
@@ -193,7 +195,7 @@ var UI_Catalog = (function () {
     if (id && typeof CatalogService !== "undefined") {
       var it = CatalogService.getById(id);
       if (it) {
-        if (titleEl) titleEl.innerText = "Edit Master Item: " + (it.sku || it.name);
+        if (titleEl) titleEl.innerText = tr("cat_modal_title_edit", "Edit Master Item") + ": " + (it.sku || it.name);
         if (skuEl) skuEl.value = it.sku || "";
         UI_ComboBox.setValue("cat-input-type", it.type || "hardware");
         populateCategories(it.type || "hardware", it.category, it.customFields);
@@ -202,7 +204,7 @@ var UI_Catalog = (function () {
         if (notesEl) notesEl.value = it.notes || "";
       }
     } else {
-      if (titleEl) titleEl.innerText = "Register Master Item";
+      if (titleEl) titleEl.innerText = tr("cat_modal_title_new", "Register Master Item");
       if (skuEl) skuEl.value = "";
       UI_ComboBox.setValue("cat-input-type", "hardware");
       populateCategories("hardware");
@@ -266,6 +268,11 @@ var UI_Catalog = (function () {
     } catch (err) { alert("Error: " + err.message); }
   }
 
+  function toggleAll(checked) {
+    var cbs = document.querySelectorAll(".catalog-select-chk");
+    for (var i = 0; i < cbs.length; i++) cbs[i].checked = checked;
+  }
+
   return {
     render: render,
     openModal: openModal,
@@ -273,6 +280,7 @@ var UI_Catalog = (function () {
     save: save,
     deleteItem: deleteItem,
     onTypeChange: onTypeChange,
-    onCategoryChange: onCategoryChange
+    onCategoryChange: onCategoryChange,
+    toggleAll: toggleAll
   };
 })();

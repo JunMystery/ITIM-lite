@@ -2,6 +2,16 @@
    ITIM-lite - Application Bootstrap, State & Lifecycle
    ========================================================================== */
 
+var BulkActions = {
+  toggleAll: function (view, chk) {
+    if (view === "catalog" && typeof UI_Catalog !== "undefined" && UI_Catalog.toggleAll) {
+      UI_Catalog.toggleAll(chk);
+    } else if (typeof UI_Assets !== "undefined" && UI_Assets.toggleSelectAll) {
+      UI_Assets.toggleSelectAll(chk);
+    }
+  }
+};
+
 var AppState = {
   db: null,
 
@@ -177,7 +187,6 @@ function initApp() {
 
   // Initial view render
   NavController.switchView("dashboard");
-  Notifications.show("ITIM-lite Ready. Press Ctrl+S to save, Ctrl+N for new asset.", "info");
 }
 
 function toggleTheme() {

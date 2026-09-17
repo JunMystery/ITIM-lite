@@ -143,12 +143,52 @@ assert(poWithMaster.items[0].qtyReceived === 3, "Line item 0 is fully received (
 console.log("\n=== 5. Software License PO Intake Tests ===");
 var swRecRes = POService.receiveItems(poWithMaster.poNumber, 1, {
   qty: 5,
-  location: "Cloud Digital Portal"
+  location: "Cloud Digital Portal",
+  licenseKey: "KEY-WIN11-MASTER-001",
+  licenseKeys: ["KEY-WIN11-01", "KEY-WIN11-02", "KEY-WIN11-03", "KEY-WIN11-04", "KEY-WIN11-05"]
 });
-assert(swRecRes.success && swRecRes.assets.length === 0, "Software intake creates license seats without hardware assets");
+assert(swRecRes.success && swRecRes.licenses.length === 1, "Software intake creates license seats with keys");
 var winLic = LicensesService.getAll().filter(function (l) { return l.software === "Windows 11 Pro OEM"; })[0];
-assert(winLic && winLic.totalSeats === 5, "Windows license seats updated to 5 via PO intake");
+assert(winLic && winLic.totalSeats === 5 && winLic.keys && winLic.keys.length === 5, "Windows license seats updated to 5 with 5 individual keys");
 assert(poWithMaster.status === "received", "Purchase order status transitioned to received");
+
+console.log("\n=== 5.1. Consumable Serial Pool PO Intake Tests ===");
+var conCat = CatalogService.add({
+  sku: "SKU-GUN-SCANNER",
+  name: "Wireless Barcode Scanner Gun",
+  type: "consumable",
+  category: "Keyboards & Mice"
+});
+var conPO = POService.createPO({
+  vendor: "Zebra Tech Supply",
+  items: [{ masterId: conCat.id, qtyOrdered: 3 }]
+});
+var conRecRes = POService.receiveItems(conPO.poNumber, 0, {
+  qty: 3,
+  isSerialized: true,
+  serials: ["BG-SCAN-101", "BG-SCAN-102", "BG-SCAN-103"],
+  location: "IT Storage Shelf C"
+});
+assert(conRecRes.success && conRecRes.consumables.length === 1, "Consumable received into inventory");
+assert(conRecRes.consumables[0].isSerialized === true, "Consumable marked isSerialized = true");
+assert(conRecRes.consumables[0].serials && conRecRes.consumables[0].serials.length === 3, "Consumable serial pool created with 3 units");
+assert(conRecRes.consumables[0].serials[0].sn === "BG-SCAN-101", "First unit has SN BG-SCAN-101 in Serial Pool");
+
+console.log("\n=== 5.2. PO with 2 Entries of Same SKU (1 with SN, 1 without SN) ===");
+var splitPo = POService.createPO({
+  vendor: "Dual Entry Supplier",
+  items: [
+    { masterId: conCat.id, qtyOrdered: 2, serials: ["BG-SN-1", "BG-SN-2"] },
+    { masterId: conCat.id, qtyOrdered: 5, serials: [] }
+  ]
+});
+assert(splitPo.items.length === 2, "PO preserved 2 distinct entries with same SKU");
+assert(splitPo.items[0].serials.length === 2, "Entry 0 has 2 preassigned serials");
+assert(splitPo.items[1].serials.length === 0, "Entry 1 has 0 serials (bulk)");
+var recSplit0 = POService.receiveItems(splitPo.poNumber, 0, { qty: 2, location: "Rack A" });
+assert(recSplit0.consumables.length === 1 && recSplit0.consumables[0].serials.length >= 2, "Entry 0 received with preassigned serials");
+var recSplit1 = POService.receiveItems(splitPo.poNumber, 1, { qty: 5, location: "Rack B" });
+assert(recSplit1.consumables.length === 1, "Entry 1 received without serials (bulk count incremented)");
 
 console.log("\n=== 6. UI_ActionsMenu & Master Catalog UI Integration Tests ===");
 var catActions = UI_ActionsMenu.getActions("catalog", newCat.id);

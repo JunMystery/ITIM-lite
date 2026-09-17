@@ -115,57 +115,34 @@ var UI_Layout = (function () {
     html.push('      </div>');
     html.push('    </section>');
 
-    // Consolidated Inventory View (Tabs: Hardware, Software, Consumables)
+    // Consolidated Inventory View (Unified: Hardware, Software, Stock)
     html.push('    <section id="view-assets" class="view-container">');
     html.push('      <div class="view-header">');
     html.push('        <div class="view-title-group"><h1 data-i18n="inventory_title">Hardware, Software &amp; Stock Inventory</h1><span class="view-subtitle" data-i18n="inventory_sub">Live allocation of equipment, software seats, and stock levels</span></div>');
-    html.push('        <div style="display:flex; gap:8px;">');
-    html.push('          <button class="btn btn-primary btn-sm" onclick="NavController.switchView(\'inbound\')" data-i18n="po_inbound_intake">+ Inbound Intake</button>');
+    html.push('      </div>');
+    html.push('      <div class="inventory-toolbar-row" style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:8px; flex-wrap:wrap;">');
+    html.push('        <div id="assets-filter-bar" style="flex:1; min-width:280px;"></div>');
+    html.push('        <div class="inventory-type-filters" style="display:flex; gap:6px; margin-left:auto; margin-bottom:6px;">');
+    html.push('          <button id="tab-btn-all" class="btn btn-sm btn-primary" style="height:32px;" onclick="UI_Assets.setTypeFilter(\'all\')">All</button>');
+    html.push('          <button id="tab-btn-assets" class="btn btn-sm" style="height:32px;" onclick="UI_Assets.setTypeFilter(\'asset\')" data-i18n="tab_hardware">Hardware Assets</button>');
+    html.push('          <button id="tab-btn-licenses" class="btn btn-sm" style="height:32px;" onclick="UI_Assets.setTypeFilter(\'license\')" data-i18n="tab_software">Software</button>');
+    html.push('          <button id="tab-btn-consumables" class="btn btn-sm" style="height:32px;" onclick="UI_Assets.setTypeFilter(\'consumable\')" data-i18n="tab_consumables">Consumables</button>');
     html.push('        </div>');
     html.push('      </div>');
-    html.push('      <div class="inventory-tabs" style="display:flex; gap:6px; margin-bottom:14px; border-bottom:1px solid var(--border-subtle); padding-bottom:6px;">');
-    html.push('        <button id="tab-btn-assets" class="btn btn-sm btn-primary" onclick="UI_Assets.switchTab(\'assets\')" data-i18n="tab_hardware">Hardware</button>');
-    html.push('        <button id="tab-btn-licenses" class="btn btn-sm" onclick="UI_Assets.switchTab(\'licenses\')" data-i18n="tab_software">Software</button>');
-    html.push('        <button id="tab-btn-consumables" class="btn btn-sm" onclick="UI_Assets.switchTab(\'consumables\')" data-i18n="tab_consumables">Stock</button>');
+    html.push('      <div id="assets-bulk-bar" class="bulk-dock-bar" style="display:none;">');
+    html.push('        <span id="assets-selected-label" style="font-weight:600; font-size:12px; color:var(--color-primary);">0 selected</span>');
+    html.push('        <button class="btn btn-primary btn-sm" onclick="UI_Assets.triggerBulkAction(\'checkout\')" data-i18n="btn_bulk_checkout">Bulk Check-out</button>');
+    html.push('        <button class="btn btn-sm" onclick="UI_Assets.triggerBulkAction(\'checkin\')" data-i18n="btn_bulk_checkin">Bulk Check-in</button>');
+    html.push('        <button class="btn btn-sm" onclick="UI_Assets.triggerBulkAction(\'status\')" data-i18n="btn_bulk_status">Change Status</button>');
+    html.push('        <button class="btn btn-sm" onclick="UI_Assets.triggerBulkAction(\'print\')" data-i18n="btn_tag">Print Tags</button>');
+    html.push('        <button class="btn btn-sm" onclick="UI_Assets.clearSelection()" data-i18n="btn_clear">Clear</button>');
     html.push('      </div>');
-    html.push('      <div id="tab-panel-assets" class="inventory-tab-panel">');
-    html.push('        <div id="assets-filter-bar"></div>');
-    html.push('        <div id="assets-bulk-bar" class="bulk-dock-bar" style="display:none;">');
-    html.push('          <span id="assets-selected-label" style="font-weight:600; font-size:12px; color:var(--color-primary);">0 selected</span>');
-    html.push('          <button class="btn btn-primary btn-sm" onclick="UI_Assets.triggerBulkAction(\'checkout\')" data-i18n="btn_bulk_checkout">Bulk Check-out</button>');
-    html.push('          <button class="btn btn-sm" onclick="UI_Assets.triggerBulkAction(\'checkin\')" data-i18n="btn_bulk_checkin">Bulk Check-in</button>');
-    html.push('          <button class="btn btn-sm" onclick="UI_Assets.triggerBulkAction(\'status\')" data-i18n="btn_bulk_status">Change Status</button>');
-    html.push('          <button class="btn btn-sm" onclick="UI_Assets.triggerBulkAction(\'print\')" data-i18n="btn_tag">Print Tags</button>');
-    html.push('          <button class="btn btn-sm" onclick="UI_Assets.clearSelection()" data-i18n="btn_clear">Clear</button>');
-    html.push('        </div>');
-    html.push('        <div class="data-table-container">');
-    html.push('          <table class="data-table">');
-    html.push('            <thead><tr><th style="width:30px; text-align:center;"><input type="checkbox" id="assets-select-all" onchange="UI_Assets.toggleSelectAll(this.checked)" /></th><th data-i18n="th_asset_id">Asset ID</th><th data-i18n="th_name_model">Name / Model</th><th data-i18n="th_category">Category</th><th data-i18n="th_serial">Serial No</th><th data-i18n="th_status">Status</th><th data-i18n="th_assigned_to">Assigned To</th><th style="text-align:right;" data-i18n="th_actions">Actions</th></tr></thead>');
-    html.push('            <tbody id="assets-table-tbody"></tbody>');
-    html.push('          </table>');
-    html.push('          <div id="assets-pagination-container"></div>');
-    html.push('        </div>');
-    html.push('      </div>');
-    html.push('      <div id="tab-panel-licenses" class="inventory-tab-panel" style="display:none;">');
-    html.push('        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">');
-    html.push('          <div id="licenses-filter-bar" style="flex:1;"></div>');
-    html.push('          <button class="btn btn-primary btn-sm" onclick="UI_Licenses.openModal()" style="margin-left:8px;" data-i18n="btn_add_license">+ Add License</button>');
-    html.push('        </div>');
-    html.push('        <div class="data-table-container">');
-    html.push('          <table class="data-table">');
-    html.push('            <thead><tr><th data-i18n="th_id">ID</th><th data-i18n="th_software_vendor">Software / Vendor</th><th data-i18n="th_type">Type</th><th data-i18n="th_seat_alloc">Seat Allocation</th><th data-i18n="th_renewal">Renewal / Expiry</th><th style="text-align:right;" data-i18n="th_actions">Actions</th></tr></thead>');
-    html.push('            <tbody id="licenses-table-tbody"></tbody>');
-    html.push('          </table>');
-    html.push('        </div>');
-    html.push('      </div>');
-    html.push('      <div id="tab-panel-consumables" class="inventory-tab-panel" style="display:none;">');
-    html.push('        <div id="consumables-filter-bar"></div>');
-    html.push('        <div class="data-table-container">');
-    html.push('          <table class="data-table">');
-    html.push('            <thead><tr><th data-i18n="th_id">ID</th><th data-i18n="th_item_name">Item Name</th><th data-i18n="th_category">Category</th><th data-i18n="th_stock">Stock</th><th data-i18n="th_location">Storage Location</th><th style="text-align:right;" data-i18n="th_actions">Actions</th></tr></thead>');
-    html.push('            <tbody id="consumables-table-tbody"></tbody>');
-    html.push('          </table>');
-    html.push('        </div>');
+    html.push('      <div class="data-table-container">');
+    html.push('        <table class="data-table">');
+    html.push('          <thead><tr><th style="width:30px; text-align:center;"><input type="checkbox" id="assets-select-all" onchange="UI_Assets.toggleSelectAll(this.checked)" /></th><th data-i18n="th_id">ID</th><th data-i18n="th_name_model">Name / Details</th><th data-i18n="th_category_type">Category / Type</th><th data-i18n="th_stock_seats">Stock / Seats</th><th data-i18n="th_status">Status</th><th data-i18n="th_assigned_location">Assigned / Location</th><th style="text-align:right;" data-i18n="th_actions">Actions</th></tr></thead>');
+    html.push('          <tbody id="assets-table-tbody"></tbody>');
+    html.push('        </table>');
+    html.push('        <div id="assets-pagination-container"></div>');
     html.push('      </div>');
     html.push('    </section>');
 
@@ -211,7 +188,7 @@ var UI_Layout = (function () {
     html.push('    <section id="view-catalog" class="view-container">');
     html.push('      <div class="view-header"><div class="view-title-group"><h1 data-i18n="catalog_title">Master Item Catalog</h1><span class="view-subtitle" data-i18n="catalog_sub">Pre-registered hardware, software, and consumable templates</span></div><div class="view-actions" style="display:flex; gap:8px;"><button class="btn btn-secondary" onclick="UI_Categories.openModal()" data-i18n="btn_manage_categories">Manage Categories</button><button class="btn btn-primary" onclick="UI_Catalog.openModal()" data-i18n="btn_register_item">+ Register Item</button></div></div>');
     html.push('      <div id="catalog-filter-bar"></div>');
-    html.push('      <div class="data-table-container"><table class="data-table" id="catalog-table"><thead><tr><th style="width:36px;"><input type="checkbox" id="catalog-select-all" onchange="BulkActions.toggleAll(\'catalog\', this.checked)"></th><th data-i18n="th_sku">SKU / Barcode</th><th data-i18n="th_name">Name</th><th data-i18n="th_type">Type</th><th data-i18n="th_category">Category</th><th data-i18n="th_model_specs">Model / Specs</th><th style="text-align:right;" data-i18n="th_actions">Actions</th></tr></thead><tbody id="catalog-tbody"></tbody></table></div>');
+    html.push('      <div class="data-table-container"><table class="data-table" id="catalog-table"><thead><tr><th style="width:36px;"><input type="checkbox" id="catalog-select-all" onchange="UI_Catalog.toggleAll(this.checked)"></th><th data-i18n="th_sku">SKU / Barcode</th><th data-i18n="th_name">Name</th><th data-i18n="th_type">Type</th><th data-i18n="th_category">Category</th><th data-i18n="th_model_specs">Model / Specs</th><th style="text-align:right;" data-i18n="th_actions">Actions</th></tr></thead><tbody id="catalog-tbody"></tbody></table></div>');
     html.push('    </section>');
 
     // Settings View

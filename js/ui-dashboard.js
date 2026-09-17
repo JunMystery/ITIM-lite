@@ -110,7 +110,7 @@ var UI_Dashboard = (function () {
       else if (l.action && (l.action.indexOf("PO_") === 0 || l.action === "INBOUND")) badgeClass = "badge-inuse";
 
       html.push("<tr>" +
-        '<td style="white-space:nowrap; width:150px; font-family:var(--font-mono); font-size:11px;">' + l.timestamp + '</td>' +
+        '<td style="white-space:nowrap; width:150px; font-family:var(--font-mono); font-size:11px;">' + (typeof I18N !== "undefined" ? I18N.formatDateTime(l.timestamp) : l.timestamp) + '</td>' +
         '<td style="width:130px;"><span class="badge ' + badgeClass + '">' + l.action + '</span></td>' +
         '<td>' + l.detail + '</td>' +
         "</tr>");

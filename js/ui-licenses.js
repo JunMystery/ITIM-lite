@@ -239,6 +239,7 @@ var UI_Licenses = (function () {
 
     closeModal();
     render();
+    if (typeof UI_Assets !== "undefined") UI_Assets.render();
     NavController.updateBadges();
   }
 
@@ -250,6 +251,7 @@ var UI_Licenses = (function () {
       LicensesService.remove(id);
       Notifications.show("License removed.", "info");
       render();
+      if (typeof UI_Assets !== "undefined") UI_Assets.render();
       NavController.updateBadges();
     });
   }

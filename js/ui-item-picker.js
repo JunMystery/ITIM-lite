@@ -1,6 +1,7 @@
 /* ==========================================================================
    ITIM-lite - Unified Multi-Item Picker Component
-   Supports Hardware Assets, Consumables, and Software Licenses
+   Live Typeahead Search (Name, SN, ID) with Keyboard Navigation & Single-Match Enter
+   Pure ES5 for Windows HTA / IE11 compatibility (< 250 LOC)
    ========================================================================== */
 
 var UI_ItemPicker = (function () {
@@ -8,8 +9,9 @@ var UI_ItemPicker = (function () {
 
   function createInstance(containerId, opts) {
     opts = opts || {};
-    var currentTab = opts.initialTab || "asset";
     var items = [];
+    var currentMatches = [];
+    var highlightedIndex = -1;
 
     function getItems() { return items.slice(0); }
 
@@ -21,23 +23,33 @@ var UI_ItemPicker = (function () {
 
     function addItem(type, id, qty) {
       if (!id) return;
-      for (var i = 0; i < items.length; i++) {
-        if (items[i].id === id && items[i].itemType === type) {
-          if (type === "consumable") {
-            items[i].quantity = Math.min(items[i].maxQuantity || 999, (items[i].quantity || 1) + (qty || 1));
-            renderTable();
-            if (opts.onChange) opts.onChange(items);
+      var cObj = (type === "consumable" && typeof ConsumablesService !== "undefined") ? ConsumablesService.getById(id) : null;
+      var isConsSerialized = !!(cObj && (cObj.isSerialized || (cObj.serials && cObj.serials.length)));
+
+      if (!isConsSerialized) {
+        for (var i = 0; i < items.length; i++) {
+          if (items[i].id === id && items[i].itemType === type) {
+            if (type === "consumable") {
+              items[i].quantity = Math.min(items[i].maxQuantity || 999, (items[i].quantity || 1) + (qty || 1));
+              renderTable();
+              if (opts.onChange) opts.onChange(items);
+            }
+            return;
           }
-          return;
         }
       }
-      var record = { itemType: type, id: id, quantity: qty || 1 };
+
+      var record = { itemType: type, id: id, quantity: qty || 1, serial: "" };
       if (type === "asset" && typeof InventoryService !== "undefined") {
         var a = InventoryService.getById(id);
         if (a) { record.name = a.name; record.serial = a.serial || ""; record.category = a.category || ""; }
-      } else if (type === "consumable" && typeof ConsumablesService !== "undefined") {
-        var c = ConsumablesService.getById(id);
-        if (c) { record.name = c.name; record.category = c.category || ""; record.maxQuantity = c.quantity || 0; record.quantity = Math.min(record.maxQuantity, qty || 1); }
+      } else if (type === "consumable" && cObj) {
+        record.name = cObj.name;
+        record.category = cObj.category || "";
+        record.maxQuantity = cObj.quantity || 0;
+        record.isSerialized = isConsSerialized;
+        record.serialsPool = cObj.serials || [];
+        record.quantity = isConsSerialized ? 1 : Math.min(record.maxQuantity, qty || 1);
       } else if (type === "license" && typeof LicensesService !== "undefined") {
         var l = LicensesService.getById(id);
         if (l) { record.name = l.software; record.category = l.vendor || ""; record.quantity = 1; }
@@ -45,6 +57,13 @@ var UI_ItemPicker = (function () {
       items.push(record);
       renderTable();
       if (opts.onChange) opts.onChange(items);
+    }
+
+    function updateSerial(index, val) {
+      if (items[index]) {
+        items[index].serial = (val || "").trim();
+        if (opts.onChange) opts.onChange(items);
+      }
     }
 
     function removeItem(index) {
@@ -64,68 +83,153 @@ var UI_ItemPicker = (function () {
       }
     }
 
-    function setTab(tab) {
-      currentTab = tab;
-      renderControls();
+    function getAllCandidates() {
+      var pool = [];
+      if (typeof InventoryService !== "undefined") {
+        var assets = InventoryService.getAll();
+        for (var a = 0; a < assets.length; a++) {
+          var ast = assets[a];
+          if (ast.status !== "retired") {
+            pool.push({
+              itemType: "asset", id: ast.id, name: ast.name, serial: ast.serial || "",
+              category: ast.category || "", status: ast.status,
+              searchStr: (ast.id + " " + ast.name + " " + (ast.serial || "") + " " + (ast.model || "") + " " + (ast.category || "")).toLowerCase()
+            });
+          }
+        }
+      }
+      if (typeof ConsumablesService !== "undefined") {
+        var cons = ConsumablesService.getAll();
+        for (var c = 0; c < cons.length; c++) {
+          var con = cons[c], snStr = "";
+          if (con.serials && con.serials.length) {
+            for (var s = 0; s < con.serials.length; s++) snStr += " " + (typeof con.serials[s] === "string" ? con.serials[s] : con.serials[s].sn);
+          }
+          pool.push({
+            itemType: "consumable", id: con.id, name: con.name, category: con.category || "",
+            stock: con.quantity || 0, maxQuantity: con.quantity || 0,
+            searchStr: (con.id + " " + con.name + " " + (con.category || "") + " " + (con.location || "") + snStr).toLowerCase()
+          });
+        }
+      }
+      if (typeof LicensesService !== "undefined") {
+        var lics = LicensesService.getAll();
+        for (var l = 0; l < lics.length; l++) {
+          var lic = lics[l];
+          pool.push({
+            itemType: "license", id: lic.id, name: lic.software, vendor: lic.vendor || "", key: lic.key || "",
+            searchStr: (lic.id + " " + lic.software + " " + (lic.vendor || "") + " " + (lic.key || "")).toLowerCase()
+          });
+        }
+      }
+      return pool;
+    }
+
+    function onSearch(val) {
+      var sug = document.getElementById(containerId + "-suggestions");
+      if (!sug) return;
+      var q = (val || "").trim().toLowerCase();
+      if (!q) { currentMatches = []; highlightedIndex = -1; sug.style.display = "none"; return; }
+      currentMatches = getAllCandidates().filter(function (it) { return it.searchStr.indexOf(q) !== -1; });
+      highlightedIndex = -1;
+      renderSuggestions();
+    }
+
+    function renderSuggestions() {
+      var sug = document.getElementById(containerId + "-suggestions");
+      if (!sug) return;
+      if (!currentMatches.length) {
+        sug.innerHTML = '<div style="padding:10px 14px; font-size:12px; color:var(--text-tertiary);">No matching equipment, consumables, or software.</div>';
+        sug.style.display = "block";
+        return;
+      }
+      var html = [];
+      for (var i = 0; i < currentMatches.length; i++) {
+        var it = currentMatches[i], isHi = (i === highlightedIndex);
+        var typeBadge = (it.itemType === "asset")
+          ? '<span class="badge" style="background:rgba(0,120,212,0.12); color:#0078d4; font-size:10px;">Hardware</span>'
+          : ((it.itemType === "consumable")
+            ? '<span class="badge" style="background:rgba(180,90,0,0.12); color:#b45a00; font-size:10px;">Stock</span>'
+            : '<span class="badge" style="background:rgba(16,124,65,0.12); color:#107c41; font-size:10px;">Software</span>');
+
+        var subInfo = it.serial ? ('SN: ' + it.serial) : (it.itemType === "consumable" ? ('Stock: ' + it.stock) : (it.vendor || ""));
+
+        html.push('<div class="picker-sug-item" style="padding:7px 12px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #f3f4f6;' + (isHi ? ' background:#e0f0ff;' : '') + '" onclick="UI_ItemPicker.getInstance(\'' + containerId + '\').selectMatch(' + i + ')">' +
+          '<div>' +
+            '<span style="font-family:var(--font-mono); font-weight:700; font-size:12px; margin-right:6px;">' + it.id + '</span>' +
+            '<strong>' + it.name + '</strong>' +
+            '<span style="margin-left:8px;">' + typeBadge + '</span>' +
+            (subInfo ? '<span style="font-size:11px; color:var(--text-secondary); margin-left:8px;">(' + subInfo + ')</span>' : '') +
+          '</div>' +
+          '<button type="button" class="btn btn-sm btn-primary" style="padding:1px 8px; font-size:11px;">+ Pick</button>' +
+        '</div>');
+      }
+      sug.innerHTML = html.join("");
+      sug.style.display = "block";
+    }
+
+    function onKeyDown(e) {
+      e = e || window.event;
+      if (e.keyCode === 40) { // Arrow Down
+        if (currentMatches.length > 0) {
+          highlightedIndex = (highlightedIndex + 1) % currentMatches.length;
+          renderSuggestions();
+          if (e.preventDefault) e.preventDefault();
+        }
+      } else if (e.keyCode === 38) { // Arrow Up
+        if (currentMatches.length > 0) {
+          highlightedIndex = (highlightedIndex - 1 + currentMatches.length) % currentMatches.length;
+          renderSuggestions();
+          if (e.preventDefault) e.preventDefault();
+        }
+      } else if (e.keyCode === 13) { // Enter
+        if (e.preventDefault) e.preventDefault();
+        if (highlightedIndex >= 0 && currentMatches[highlightedIndex]) {
+          selectMatch(highlightedIndex);
+        } else if (currentMatches.length === 1) {
+          selectMatch(0);
+        } else if (currentMatches.length > 1) {
+          if (typeof Notifications !== "undefined") {
+            Notifications.show(currentMatches.length + " items matched. Use arrow keys or click to select.", "warning");
+          }
+        }
+      } else if (e.keyCode === 27) { // Escape
+        closeSuggestions();
+      }
+    }
+
+    function selectMatch(idx) {
+      if (idx < 0 || idx >= currentMatches.length) return;
+      var it = currentMatches[idx];
+      addItem(it.itemType, it.id, 1);
+      closeSuggestions();
+      var input = document.getElementById(containerId + "-search-input");
+      if (input) { input.value = ""; input.focus(); }
+    }
+
+    function closeSuggestions() {
+      var sug = document.getElementById(containerId + "-suggestions");
+      if (sug) sug.style.display = "none";
+      currentMatches = [];
+      highlightedIndex = -1;
+    }
+
+    function clearSearch() {
+      var input = document.getElementById(containerId + "-search-input");
+      if (input) { input.value = ""; input.focus(); }
+      closeSuggestions();
     }
 
     function renderControls() {
       var ctrlBox = document.getElementById(containerId + "-controls");
       if (!ctrlBox) return;
-
-      var tAsset = (typeof I18N !== "undefined" ? I18N.t("tab_hardware") : "Hardware Assets");
-      var tCon = (typeof I18N !== "undefined" ? I18N.t("tab_consumables") : "Consumables");
-      var tLic = (typeof I18N !== "undefined" ? I18N.t("tab_software") : "Software");
-
-      var tabsHtml = '<div style="display:flex; gap:4px; margin-bottom:8px; border-bottom:1px solid var(--border-subtle); padding-bottom:4px;">' +
-        '<button type="button" class="btn btn-sm ' + (currentTab === "asset" ? "btn-primary" : "") + '" onclick="UI_ItemPicker.getInstance(\'' + containerId + '\').setTab(\'asset\')">' + tAsset + '</button>' +
-        '<button type="button" class="btn btn-sm ' + (currentTab === "consumable" ? "btn-primary" : "") + '" onclick="UI_ItemPicker.getInstance(\'' + containerId + '\').setTab(\'consumable\')">' + tCon + '</button>' +
-        '<button type="button" class="btn btn-sm ' + (currentTab === "license" ? "btn-primary" : "") + '" onclick="UI_ItemPicker.getInstance(\'' + containerId + '\').setTab(\'license\')">' + tLic + '</button>' +
+      ctrlBox.innerHTML = '<div style="position:relative; margin-bottom:8px;">' +
+        '<div style="display:flex; gap:6px; align-items:center;">' +
+          '<input type="text" id="' + containerId + '-search-input" class="form-input" placeholder="Type Name, Serial (SN), ID, or scan barcode..." autocomplete="off" style="flex:1; height:34px;" oninput="UI_ItemPicker.getInstance(\'' + containerId + '\').onSearch(this.value)" onkeydown="UI_ItemPicker.getInstance(\'' + containerId + '\').onKeyDown(event)" />' +
+          '<button type="button" class="btn btn-sm" onclick="UI_ItemPicker.getInstance(\'' + containerId + '\').clearSearch()" title="Clear">✕</button>' +
+        '</div>' +
+        '<div id="' + containerId + '-suggestions" style="display:none; position:absolute; left:0; right:0; top:38px; max-height:220px; overflow-y:auto; z-index:1200; background:#fff; border:1px solid #d1d5db; border-radius:4px; box-shadow:0 6px 16px rgba(0,0,0,0.18);"></div>' +
       '</div>';
-
-      var formHtml = "";
-      if (currentTab === "asset") {
-        var assets = (typeof InventoryService !== "undefined") ? InventoryService.getAll() : [];
-        var optsHtml = '<option value="">-- ' + (typeof I18N !== "undefined" ? I18N.t("select_asset") : "Select Hardware Asset") + ' --</option>';
-        for (var i = 0; i < assets.length; i++) {
-          var a = assets[i];
-          if (a.status !== "retired") {
-            optsHtml += '<option value="' + a.id + '">' + a.id + ' - ' + a.name + ' (' + a.status + ')</option>';
-          }
-        }
-        formHtml = '<div style="display:flex; gap:6px; align-items:center;">' +
-          '<select id="' + containerId + '-asset-sel" class="form-select" style="flex:1;">' + optsHtml + '</select>' +
-          '<button type="button" class="btn btn-sm btn-primary" onclick="UI_ItemPicker.getInstance(\'' + containerId + '\').onAddAsset()">+ ' + (typeof I18N !== "undefined" ? I18N.t("btn_add") : "Add") + '</button>' +
-        '</div>';
-      } else if (currentTab === "consumable") {
-        var cons = (typeof ConsumablesService !== "undefined") ? ConsumablesService.getAll() : [];
-        var cOpts = '<option value="">-- ' + (typeof I18N !== "undefined" ? I18N.t("select_consumable") : "Select Consumable") + ' --</option>';
-        for (var j = 0; j < cons.length; j++) {
-          var c = cons[j];
-          if (c.quantity > 0) {
-            cOpts += '<option value="' + c.id + '">' + c.id + ' - ' + c.name + ' (Stock: ' + c.quantity + ')</option>';
-          }
-        }
-        formHtml = '<div style="display:flex; gap:6px; align-items:center;">' +
-          '<select id="' + containerId + '-con-sel" class="form-select" style="flex:1;">' + cOpts + '</select>' +
-          '<input type="number" id="' + containerId + '-con-qty" class="form-input" value="1" min="1" style="width:65px;" title="Quantity" />' +
-          '<button type="button" class="btn btn-sm btn-primary" onclick="UI_ItemPicker.getInstance(\'' + containerId + '\').onAddConsumable()">+ ' + (typeof I18N !== "undefined" ? I18N.t("btn_add") : "Add") + '</button>' +
-        '</div>';
-      } else if (currentTab === "license") {
-        var lics = (typeof LicensesService !== "undefined") ? LicensesService.getAll() : [];
-        var lOpts = '<option value="">-- ' + (typeof I18N !== "undefined" ? I18N.t("select_license") : "Select Software") + ' --</option>';
-        for (var k = 0; k < lics.length; k++) {
-          var l = lics[k];
-          var avail = Math.max(0, (l.totalSeats || 0) - (l.assignedSeats || 0));
-          lOpts += '<option value="' + l.id + '">' + l.id + ' - ' + l.software + ' (' + avail + ' seats free)</option>';
-        }
-        formHtml = '<div style="display:flex; gap:6px; align-items:center;">' +
-          '<select id="' + containerId + '-lic-sel" class="form-select" style="flex:1;">' + lOpts + '</select>' +
-          '<button type="button" class="btn btn-sm btn-primary" onclick="UI_ItemPicker.getInstance(\'' + containerId + '\').onAddLicense()">+ ' + (typeof I18N !== "undefined" ? I18N.t("btn_add") : "Add") + '</button>' +
-        '</div>';
-      }
-
-      ctrlBox.innerHTML = tabsHtml + formHtml;
     }
 
     function renderTable() {
@@ -133,8 +237,8 @@ var UI_ItemPicker = (function () {
       if (!tableBox) return;
 
       if (items.length === 0) {
-        tableBox.innerHTML = '<div style="text-align:center; padding:10px; font-size:11px; color:var(--text-tertiary); background:var(--bg-surface-secondary); border-radius:4px; border:1px dashed var(--border-subtle);">' +
-          (typeof I18N !== "undefined" ? I18N.t("no_items_selected") : "No items selected yet. Use tabs above to add equipment, consumables, or software.") +
+        tableBox.innerHTML = '<div style="text-align:center; padding:12px; font-size:12px; color:var(--text-tertiary); background:var(--bg-surface-secondary); border-radius:4px; border:1px dashed var(--border-subtle);">' +
+          (typeof I18N !== "undefined" ? I18N.t("no_items_selected") : "No items selected yet. Type Name, SN, or scan barcode above to add items.") +
         '</div>';
         return;
       }
@@ -148,15 +252,39 @@ var UI_ItemPicker = (function () {
           ? '<input type="number" min="1" max="' + (it.maxQuantity || 999) + '" value="' + (it.quantity || 1) + '" onchange="UI_ItemPicker.getInstance(\'' + containerId + '\').updateQty(' + i + ', this.value)" style="width:50px; font-size:11px; padding:1px 3px;" />'
           : '<span>1</span>';
 
+        var descHtml = '<strong>' + (it.name || it.id) + '</strong><br><span style="font-family:var(--font-mono); font-size:10px; color:var(--text-secondary);">' + it.id + (it.serial && it.itemType === 'asset' ? ' | ' + it.serial : '') + '</span>';
+
+        if (it.itemType === "consumable" && it.isSerialized) {
+          var snDatalist = "";
+          if (it.serialsPool && it.serialsPool.length) {
+            var optsArr = [];
+            for (var p = 0; p < it.serialsPool.length; p++) {
+              var pSn = (typeof it.serialsPool[p] === "string") ? it.serialsPool[p] : it.serialsPool[p].sn;
+              var pSt = (typeof it.serialsPool[p] === "object") ? it.serialsPool[p].status : "available";
+              if (pSt !== "assigned") optsArr.push('<option value="' + pSn + '">' + pSn + ' (Ready)</option>');
+            }
+            if (optsArr.length) snDatalist = '<datalist id="' + containerId + '-sn-dl-' + i + '">' + optsArr.join("") + '</datalist>';
+          }
+          descHtml += '<div style="margin-top:4px; display:flex; align-items:center; gap:6px;">' +
+            '<span style="font-size:11px; font-weight:700; color:#0078d4;">SN *:</span>' +
+            '<input type="text" class="form-input" style="height:24px; font-size:11px; padding:2px 6px; font-family:var(--font-mono); width:170px; border:1px solid #0078d4; background:#f0f8ff;" placeholder="Input / Scan Serial No..." value="' + (it.serial || "") + '" oninput="UI_ItemPicker.getInstance(\'' + containerId + '\').updateSerial(' + i + ', this.value)" list="' + containerId + '-sn-dl-' + i + '" />' +
+            snDatalist +
+          '</div>';
+        }
+
+        var qtyControl = (it.itemType === "consumable" && !it.isSerialized)
+          ? '<input type="number" min="1" max="' + (it.maxQuantity || 999) + '" value="' + (it.quantity || 1) + '" onchange="UI_ItemPicker.getInstance(\'' + containerId + '\').updateQty(' + i + ', this.value)" style="width:50px; font-size:11px; padding:1px 3px;" />'
+          : '<span>' + (it.quantity || 1) + '</span>';
+
         rows.push('<tr>' +
           '<td style="width:70px;">' + badge + '</td>' +
-          '<td><strong>' + (it.name || it.id) + '</strong><br><span style="font-family:var(--font-mono); font-size:10px; color:var(--text-secondary);">' + it.id + (it.serial ? ' | ' + it.serial : '') + '</span></td>' +
+          '<td>' + descHtml + '</td>' +
           '<td style="text-align:center; width:65px;">' + qtyControl + '</td>' +
           '<td style="text-align:right; width:35px;"><button type="button" class="btn btn-sm" onclick="UI_ItemPicker.getInstance(\'' + containerId + '\').removeItem(' + i + ')" style="color:#d13438; padding:1px 5px;">✕</button></td>' +
         '</tr>');
       }
 
-      tableBox.innerHTML = '<div style="max-height:140px; overflow-y:auto; border:1px solid var(--border-subtle); border-radius:4px; margin-top:6px;">' +
+      tableBox.innerHTML = '<div style="max-height:150px; overflow-y:auto; border:1px solid var(--border-subtle); border-radius:4px; margin-top:6px;">' +
         '<table class="data-table" style="font-size:11px; margin:0;">' +
           '<thead><tr><th>Type</th><th>Item Description</th><th style="text-align:center;">Qty</th><th style="text-align:right;"></th></tr></thead>' +
           '<tbody>' + rows.join("") + '</tbody>' +
@@ -173,28 +301,9 @@ var UI_ItemPicker = (function () {
     }
 
     return {
-      init: init,
-      setTab: setTab,
-      getItems: getItems,
-      setItems: setItems,
-      addItem: addItem,
-      removeItem: removeItem,
-      updateQty: updateQty,
-      clear: function () { setItems([]); },
-      onAddAsset: function () {
-        var sel = document.getElementById(containerId + "-asset-sel");
-        if (sel && sel.value) { addItem("asset", sel.value); sel.value = ""; }
-      },
-      onAddConsumable: function () {
-        var sel = document.getElementById(containerId + "-con-sel");
-        var qtyInput = document.getElementById(containerId + "-con-qty");
-        var qty = qtyInput ? (parseInt(qtyInput.value, 10) || 1) : 1;
-        if (sel && sel.value) { addItem("consumable", sel.value, qty); sel.value = ""; if (qtyInput) qtyInput.value = "1"; }
-      },
-      onAddLicense: function () {
-        var sel = document.getElementById(containerId + "-lic-sel");
-        if (sel && sel.value) { addItem("license", sel.value, 1); sel.value = ""; }
-      }
+      init: init, getItems: getItems, setItems: setItems, addItem: addItem, removeItem: removeItem, updateQty: updateQty, updateSerial: updateSerial,
+      clear: function () { setItems([]); }, onSearch: onSearch, onKeyDown: onKeyDown, selectMatch: selectMatch,
+      closeSuggestions: closeSuggestions, clearSearch: clearSearch
     };
   }
 

@@ -110,6 +110,7 @@ var UI_Consumables = (function () {
   function adjust(id, delta) {
     ConsumablesService.adjustQuantity(id, delta);
     render();
+    if (typeof UI_Assets !== "undefined") UI_Assets.render();
     NavController.updateBadges();
   }
 
@@ -187,6 +188,7 @@ var UI_Consumables = (function () {
     Notifications.show("Item updated successfully.", "success");
     closeModal();
     render();
+    if (typeof UI_Assets !== "undefined") UI_Assets.render();
     NavController.updateBadges();
   }
 
@@ -198,6 +200,7 @@ var UI_Consumables = (function () {
       ConsumablesService.remove(id);
       Notifications.show("Item removed.", "info");
       render();
+      if (typeof UI_Assets !== "undefined") UI_Assets.render();
       NavController.updateBadges();
     });
   }
